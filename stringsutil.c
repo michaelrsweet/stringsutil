@@ -314,7 +314,8 @@ scan_files(strings_file_t *sf,		// I - Strings
            const char     *files[])	// I - Files
 {
   size_t	fnlen;			// Length of function name
-  int		i;			// Looping var
+  int		i,			// Looping var
+		linenum;		// Line number in file
   FILE		*fp;			// Current file
   char		line[1024],		// Line from file
 		*lineptr,		// Pointer into line
@@ -336,9 +337,13 @@ scan_files(strings_file_t *sf,		// I - Strings
       return (1);
     }
 
+    linenum = 0;
+
     while (fgets(line, sizeof(line), fp))
     {
       // Look for the function invocation...
+      linenum ++;
+
       if ((lineptr = strstr(line, funcname)) == NULL)
         continue;
 
@@ -359,7 +364,7 @@ scan_files(strings_file_t *sf,		// I - Strings
       comment[0] = '\0';
       text[0]    = '\0';
 
-      if (strncmp(lineptr, "/*", 2))
+      if (!strncmp(lineptr, "/*", 2))
       {
         // Comment, copy it...
         lineptr += 2;
