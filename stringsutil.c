@@ -9,7 +9,7 @@
 // Usage:
 //
 //   stringsutil scan -f FILENAME.strings SOURCE-FILE(S)
-//   stringsutil merge -f FILENAME.strings FILENAME2.strings
+//   stringsutil merge [-c] -f FILENAME.strings FILENAME2.strings
 //   stringsutil export -f FILENAME.strings FILENAME.{po,h}
 //   stringsutil import -f FILENAME.strings FILENAME.po
 //   stringsutil report -f FILENAME.strings FILENAME2.strings
@@ -24,8 +24,8 @@
 
 static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
 static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename);
-static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename);
-static int	report_strings(strings_file_t *sf, int num_files, const char *files[]);
+static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename, bool clean);
+static int	report_strings(strings_file_t *sf, const char *filename);
 static int	scan_files(strings_file_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
 static int	usage(FILE *fp, int status);
 static void	write_string(FILE *fp, const char *s, bool code);
@@ -45,9 +45,11 @@ main(int  argc,				// I - Number of command-line arguments
   const char	*files[1000],		// Files
 		*command = NULL,	// Command
 		*funcname = NULL,	// Function name
-		*opt,			// Pointer to option
-		*sfname;		// Strings filename
+		*opt;			// Pointer to option
+  bool		clean = false;		// Clean old strings?
+  const char	*sfname;		// Strings filename
   strings_file_t *sf = NULL;		// Strings file
+  struct stat	sfinfo;			// Strings file info
 
 
   // Parse command-line...
@@ -73,6 +75,10 @@ main(int  argc,				// I - Number of command-line arguments
       {
         switch (*opt)
         {
+          case 'c' : // -c
+              clean = true;
+              break;
+
           case 'f' : // -f FILENAME.strings
               i ++;
               if (i >= argc)
@@ -128,10 +134,6 @@ main(int  argc,				// I - Number of command-line arguments
     fputs(SFSTR("stringsutil: Expected command name.\n"), stderr);
     return (usage(stderr, 1));
   }
-  else if (!strcmp(command, "report"))
-  {
-    return (report_strings(sf, num_files, files));
-  }
   else if (!strcmp(command, "scan"))
   {
     if (funcname)
@@ -154,17 +156,26 @@ main(int  argc,				// I - Number of command-line arguments
     fputs(SFSTR("stringsutil: Too many files.\n"), stderr);
     return (1);
   }
-  else if (!strcmp(command, "export"))
-  {
-    return (export_strings(sf, sfname, files[0]));
-  }
   else if (!strcmp(command, "import"))
   {
     return (import_strings(sf, sfname, files[0]));
   }
   else if (!strcmp(command, "merge"))
   {
-    return (merge_strings(sf, sfname, files[0]));
+    return (merge_strings(sf, sfname, files[0], clean));
+  }
+  else if (stat(sfname, &sfinfo))
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s\n"), sfname, sfGetError(sf));
+    return (1);
+  }
+  else if (!strcmp(command, "export"))
+  {
+    return (export_strings(sf, sfname, files[0]));
+  }
+  else if (!strcmp(command, "report"))
+  {
+    return (report_strings(sf, files[0]));
   }
 
   return (0);
@@ -183,16 +194,17 @@ export_strings(strings_file_t *sf,	// I - Strings
   const char	*ext;			// Filename extension
   bool		code;			// Writing C code?
   FILE		*fp;			// File
-  _sf_pair_t	*pair;			// Current pair
+  _sf_pair_t	*pair,			// Current pair
+		*next;			// Next pair
 
 
-  if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".h")))
+  if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".h") && strcmp(ext, ".c") && strcmp(ext, ".cc") && strcmp(ext, ".cpp") && strcmp(ext, ".cxx")))
   {
     fprintf(stderr, SFSTR("stringsutil: Unknown export format for '%s'.\n"), filename);
     return (1);
   }
 
-  code = !strcmp(ext, ".h");
+  code = !strcmp(ext, ".h") || !strcmp(ext, ".c") || !strcmp(ext, ".cc") || !strcmp(ext, ".cpp") || !strcmp(ext, ".cxx");
 
   if ((fp = fopen(filename, "w")) == NULL)
   {
@@ -215,8 +227,10 @@ export_strings(strings_file_t *sf,	// I - Strings
     fputs(" = ", fp);
   }
 
-  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = next)
   {
+    next = (_sf_pair_t *)cupsArrayNext(sf->pairs);
+
     if (code)
     {
       if (pair->comment)
@@ -239,8 +253,10 @@ export_strings(strings_file_t *sf,	// I - Strings
 
     write_string(fp, pair->text, code);
 
-    if (code)
+    if (code && next)
       fputs(";\\n\"\n", fp);
+    else if (code)
+      fputs(";\\n\";\n", fp);
     else
       fputs("\n\n", fp);
   }
@@ -275,13 +291,57 @@ import_strings(strings_file_t *sf,	// I - Strings
 static int				// O - Exit status
 merge_strings(strings_file_t *sf,	// I - Strings
               const char     *sfname,	// I - Strings filename
-              const char     *filename)	// I - Merge filename
+              const char     *filename,	// I - Merge filename
+              bool           clean)	// I - Clean old strings?
 {
-  (void)sf;
-  (void)sfname;
-  (void)filename;
+  strings_file_t	*msf;		// Strings file to merge
+  _sf_pair_t		*pair,		// Current pair
+			*mpair;		// Merge pair
+  int			added = 0,	// Number of added strings
+			removed = 0;	// Number of removed strings
 
-  return (1);
+
+  // Open the merge file...
+  msf = sfNew();
+  if (!sfLoadFromFile(msf, filename))
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unable to merge '%s': %s\n"), filename, sfGetError(msf));
+    sfDelete(msf);
+    return (1);
+  }
+
+  // Loop through the merge list and add any new strings...
+  for (mpair = (_sf_pair_t *)cupsArrayFirst(msf->pairs); mpair; mpair = (_sf_pair_t *)cupsArrayNext(msf->pairs))
+  {
+    if (cupsArrayFind(sf->pairs, mpair))
+      continue;
+
+    added ++;
+    cupsArrayAdd(sf->pairs, mpair);
+  }
+
+  // Then clean old messages (if needed)...
+  if (clean)
+  {
+    for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+    {
+      if (cupsArrayFind(msf->pairs, pair))
+	continue;
+
+      removed ++;
+      cupsArrayRemove(sf->pairs, pair);
+    }
+  }
+
+  sfDelete(msf);
+
+  if (added || removed)
+  {
+    printf(SFSTR("stringsutil: Added %d string(s), removed %d string(s).\n"), added, removed);
+    return (write_strings(sf, sfname) ? 0 : 1);
+  }
+
+  return (0);
 }
 
 
@@ -291,14 +351,65 @@ merge_strings(strings_file_t *sf,	// I - Strings
 
 static int				// O - Exit status
 report_strings(strings_file_t *sf,	// I - Strings
-               int            num_files,// I - Number of files
-               const char     *files[])	// I - Files
+               const char     *filename)// I - Comparison filename
 {
-  (void)sf;
-  (void)num_files;
-  (void)files;
+  strings_file_t	*rsf;		// Strings file to report
+  _sf_pair_t		*pair,		// Current pair
+			*rpair;		// Report pair
+  int			total,		// Total messages
+			translated = 0,	// Translated messages
+			missing = 0,	// Missing messages
+			old = 0,	// Old messages
+			untranslated = 0;
+					// Messages not translated
 
-  return (1);
+
+  // Open the report file...
+  rsf = sfNew();
+  if (!sfLoadFromFile(rsf, filename))
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unable to report on '%s': %s\n"), filename, sfGetError(rsf));
+    sfDelete(rsf);
+    return (1);
+  }
+
+  // Loop through the report list and check strings...
+  for (rpair = (_sf_pair_t *)cupsArrayFirst(rsf->pairs); rpair; rpair = (_sf_pair_t *)cupsArrayNext(rsf->pairs))
+  {
+    if ((pair = cupsArrayFind(sf->pairs, rpair)) == NULL)
+    {
+      old ++;
+      continue;
+    }
+
+    if (strcmp(rpair->text, pair->text))
+      translated ++;
+    else
+      untranslated ++;
+  }
+
+  // Then look for new messages that haven't been merged...
+  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  {
+    if (cupsArrayFind(rsf->pairs, pair))
+      continue;
+
+    missing ++;
+  }
+
+  sfDelete(rsf);
+
+  total = translated + missing + untranslated;
+
+  if (missing || old)
+    printf(SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s).\n"), missing, old);
+
+  if (total == 0)
+    puts(SFSTR("stringsutil: No strings."));
+  else
+    printf(SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated.\n"), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
+
+  return (untranslated > (total / 2) ? 1 : 0);
 }
 
 
@@ -415,7 +526,7 @@ scan_files(strings_file_t *sf,		// I - Strings
             ch = '\r';
           else if (*lineptr == 't')
             ch = '\t';
-          else if (isdigit(*lineptr & 255) && isdigit(lineptr[1] & 255) && isdigit(lineptr[2] & 255))
+          else if (*lineptr >= '0' && *lineptr <= '3' && lineptr[1] >= '0' && lineptr[1] <= '7' && lineptr[2] >= '0' && lineptr[2] <= '7')
           {
             ch = ((*lineptr - '0') << 6) | ((lineptr[1] - '0') << 3) | (lineptr[2] - '0');
             lineptr += 2;

@@ -14,6 +14,15 @@
 #  include <string.h>
 #  include <ctype.h>
 #  include <errno.h>
+#  include <sys/stat.h>
+#  if _WIN32
+#    define _CRT_SECURE_NO_DEPRECATE
+#    define _CRT_SECURE_NO_WARNINGS
+#    include <io.h>
+#  else
+#    include <unistd.h>
+#    include <fcntl.h>
+#  endif // _WIN32
 #  include "strings-file.h"
 #  ifdef __cplusplus
 extern "C" {

@@ -1,0 +1,6 @@
+*.o
+test.strings
+test.po
+test.h
+stringsutil
+libsf.a

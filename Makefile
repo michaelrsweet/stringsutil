@@ -92,13 +92,15 @@ test:		stringsutil
 	rm -f test.strings
 	echo "Scan test..."
 	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c)
-	if test ! -f test.strings -o "$$(wc -l test.strings 2>/dev/null | awk '{print $$1}')0" -ne 290; then \
+	if test ! -f test.strings -o "$$(wc -l test.strings 2>/dev/null | awk '{print $$1}')0" -ne 350; then \
 		echo "Did not scan the expected number of strings."; \
 		exit 1; \
 	fi
 	echo "Export tests..."
 	./stringsutil -f test.strings export test.h
 	./stringsutil -f test.strings export test.po
+	echo "Report tests..."
+	./stringsutil -f test.strings report test-zz.strings
 	echo "All tests passed."
 
 

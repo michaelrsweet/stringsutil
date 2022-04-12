@@ -9,15 +9,6 @@
 
 #include "strings-file-private.h"
 #include <stdarg.h>
-#include <sys/stat.h>
-#if _WIN32
-#  define _CRT_SECURE_NO_DEPRECATE
-#  define _CRT_SECURE_NO_WARNINGS
-#  include <io.h>
-#else
-#  include <unistd.h>
-#  include <fcntl.h>
-#endif // _WIN32
 
 
 //
@@ -228,17 +219,14 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
     else if (*dataptr == '/' && dataptr[1] == '*')
     {
       // Start of C-style comment...
-      for (dataptr += 2; *dataptr; dataptr ++)
+      for (dataptr += 2; *dataptr && isspace(*dataptr & 255); dataptr ++)
       {
         // Skip leading whitespace...
         if (*dataptr == '\n')
           linenum ++;
-
-        if (!isspace(*dataptr & 255))
-          break;
       }
 
-      for (dataptr += 2, ptr = comment; *dataptr; dataptr ++)
+      for (ptr = comment; *dataptr; dataptr ++)
       {
         if (*dataptr == '*' && dataptr[1] == '/')
 	{
@@ -258,6 +246,10 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
         break;
 
       *ptr = '\0';
+      while (ptr > comment && isspace(ptr[-1] & 255))
+        *--ptr = '\0';			// Strip trailing whitespace
+
+      continue;
     }
     else if (*dataptr != '\"')
     {
@@ -333,7 +325,7 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 
     if (*dataptr != '=')
     {
-      _sfSetError(sf, "sfLoadString: Missing separator on line %d.", linenum);
+      _sfSetError(sf, "sfLoadString: Missing separator on line %d (saw '%c' at offset %ld).", linenum, *dataptr, dataptr - data);
       return (false);
     }
 
