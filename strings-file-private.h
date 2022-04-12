@@ -9,10 +9,22 @@
 
 #ifndef STRINGS_FILE_PRIVATE_H
 #  define STRINGS_FILE_PRIVATE_H
+#  include <stdio.h>
+#  include <stdlib.h>
+#  include <string.h>
+#  include <ctype.h>
+#  include <errno.h>
 #  include "strings-file.h"
 #  ifdef __cplusplus
 extern "C" {
 #  endif // __cplusplus
+
+
+//
+// Macros...
+//
+
+#  define SFSTR(s) s
 
 
 //

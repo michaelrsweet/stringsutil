@@ -7,11 +7,17 @@
 // information.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
 #include "strings-file-private.h"
+#include <stdarg.h>
+#include <sys/stat.h>
+#if _WIN32
+#  define _CRT_SECURE_NO_DEPRECATE
+#  define _CRT_SECURE_NO_WARNINGS
+#  include <io.h>
+#else
+#  include <unistd.h>
+#  include <fcntl.h>
+#endif // _WIN32
 
 
 //
@@ -158,6 +164,7 @@ sfLoadFromFile(strings_file_t *sf,	// I - Localization strings
     // Short read, shouldn't happen but warn if it does...
     fprintf(stderr, "sfLoadFromFile: Only read %u of %u bytes from '%s'.", (unsigned)bytes, (unsigned)fileinfo.st_size, filename);
   }
+#endif // DEBUG
 
   close(fd);
 
@@ -410,8 +417,8 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 
     dataptr ++;
 
-    if (!cupsArrayFind(sf, &pair))
-      cupsArrayAdd(sf, &pair);
+    if (!cupsArrayFind(sf->pairs, &pair))
+      cupsArrayAdd(sf->pairs, &pair);
 
     comment[0] = '\0';
   }
@@ -432,7 +439,7 @@ sfNew(void)
   strings_file_t	*sf;		// Localization strings
 
 
-  if ((sf = calloc(1, sizeof(strings_file_t)) != NULL)
+  if ((sf = calloc(1, sizeof(strings_file_t))) != NULL)
     sf->pairs = cupsArrayNew3((cups_array_func_t)_sfPairCompare, NULL, NULL, 0, (cups_acopy_func_t)_sfPairCopy, (cups_afree_func_t)_sfPairFree);
 
   return (sf);
