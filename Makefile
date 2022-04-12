@@ -77,6 +77,15 @@ libsf.a:	strings-file.o
 	$(AR) $(ARFLAGS) $@ strings-file.o
 	$(RANLIB) $@
 
-test:
+test:		stringsutil
+	rm -f test.strings
+	./stringsutil -f test.strings scan $(OBJS:.o=.c)
+	if test $$(wc -l test.strings) != 30; then \
+		echo "Did not scan the expected number of strings."; \
+		exit 1; \
+	fi
+	./stringsutil -f test.string export test.h
+	./stringsutil -f test.string export test.po
+
 
 $(OBJS):	strings-file.h strings-file-private.h Makefile

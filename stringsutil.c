@@ -22,12 +22,14 @@
 // Local functions...
 //
 
-static int	export_strings(strings_file_t *sf, const char *filename);
+static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
 static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename);
 static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename);
 static int	report_strings(strings_file_t *sf, int num_files, const char *files[]);
 static int	scan_files(strings_file_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
 static int	usage(FILE *fp, int status);
+static void	write_string(FILE *fp, const char *s, bool code);
+static bool	write_strings(strings_file_t *sf, const char *sfname);
 
 
 //
@@ -46,6 +48,7 @@ main(int  argc,				// I - Number of command-line arguments
 		*opt,			// Pointer to option
 		*sfname;		// Strings filename
   strings_file_t *sf = NULL;		// Strings file
+
 
   // Parse command-line...
   for (i = 1; i < argc; i ++)
@@ -153,7 +156,7 @@ main(int  argc,				// I - Number of command-line arguments
   }
   else if (!strcmp(command, "export"))
   {
-    return (export_strings(sf, files[0]));
+    return (export_strings(sf, sfname, files[0]));
   }
   else if (!strcmp(command, "import"))
   {
@@ -174,12 +177,77 @@ main(int  argc,				// I - Number of command-line arguments
 
 static int				// O - Exit status
 export_strings(strings_file_t *sf,	// I - Strings
+	       const char     *sfname,	// I - Strings filename
                const char     *filename)// I - Export filename
 {
-  (void)sf;
-  (void)filename;
+  const char	*ext;			// Filename extension
+  bool		code;			// Writing C code?
+  FILE		*fp;			// File
+  _sf_pair_t	*pair;			// Current pair
 
-  return (1);
+
+  if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".h")))
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unknown export format for '%s'.\n"), filename);
+    return (1);
+  }
+
+  code = !strcmp(ext, ".h");
+
+  if ((fp = fopen(filename, "w")) == NULL)
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unable to export '%s': %s\n"), sfname, strerror(errno));
+    return (false);
+  }
+
+  if (code)
+  {
+    fputs("static const char *", fp);
+    while (*sfname)
+    {
+      if (isalnum(*sfname & 255))
+        putc(*sfname, fp);
+      else
+        putc('_', fp);
+
+      sfname ++;
+    }
+    fputs(" = ", fp);
+  }
+
+  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  {
+    if (code)
+    {
+      if (pair->comment)
+	fprintf(fp, "/* %s */\n", pair->comment);
+      fputs("\"", fp);
+    }
+    else
+    {
+      if (pair->comment)
+	fprintf(fp, "# %s\n", pair->comment);
+      fputs("msgid ", fp);
+    }
+
+    write_string(fp, pair->key, code);
+
+    if (code)
+      fputs(" = ", fp);
+    else
+      fputs("\nmsgstr ", fp);
+
+    write_string(fp, pair->text, code);
+
+    if (code)
+      fputs(";\\n\"\n", fp);
+    else
+      fputs("\n\n", fp);
+  }
+
+  fclose(fp);
+
+  return (0);
 }
 
 
@@ -245,13 +313,155 @@ scan_files(strings_file_t *sf,		// I - Strings
            int            num_files,	// I - Number of files
            const char     *files[])	// I - Files
 {
-  (void)sf;
-  (void)sfname;
-  (void)funcname;
-  (void)num_files;
-  (void)files;
+  size_t	fnlen;			// Length of function name
+  int		i;			// Looping var
+  FILE		*fp;			// Current file
+  char		line[1024],		// Line from file
+		*lineptr,		// Pointer into line
+		comment[1024],		// Comment string (if any)
+		text[1024],		// Text string
+		*ptr;			// Pointer into comment/text
+  _sf_pair_t	pair;			// New pair
+  int		changes = 0;		// How many added strings?
 
-  return (1);
+
+  // Scan each file for strings...
+  fnlen = strlen(funcname);
+
+  for (i = 0; i < num_files; i ++)
+  {
+    if ((fp = fopen(files[i], "r")) == NULL)
+    {
+      fprintf(stderr, SFSTR("stringsutil: Unable to open source file '%s': %s\n"), files[i], strerror(errno));
+      return (1);
+    }
+
+    while (fgets(line, sizeof(line), fp))
+    {
+      // Look for the function invocation...
+      if ((lineptr = strstr(line, funcname)) == NULL)
+        continue;
+
+      while (lineptr)
+      {
+        if ((lineptr == line || strchr(" \t(,{", lineptr[-1]) != NULL) && lineptr[fnlen] == '(')
+          break;
+
+        lineptr = strstr(lineptr + 1, funcname);
+      }
+
+      if (!lineptr)
+        continue;
+
+      // Found "FUNCNAME(", look for comment and text...
+      lineptr += fnlen + 1;
+
+      comment[0] = '\0';
+      text[0]    = '\0';
+
+      if (strncmp(lineptr, "/*", 2))
+      {
+        // Comment, copy it...
+        lineptr += 2;
+        while (*lineptr && isspace(*lineptr & 255))
+          lineptr ++;
+
+        for (ptr = comment; *lineptr; lineptr ++)
+        {
+          if (!strncmp(lineptr, "*/", 2))
+            break;
+          else if (ptr < (comment + sizeof(comment) - 1))
+            *ptr++ = *lineptr;
+        }
+
+        // Strip trailing whitespace in comment
+        *ptr = '\0';
+        while (ptr > comment && isspace(ptr[-1] & 255))
+          *--ptr = '\0';
+
+        // Abort if the comment isn't finished
+        if (!*lineptr)
+          continue;
+
+        lineptr += 2;
+        while (*lineptr && isspace(*lineptr & 255))
+          lineptr ++;
+      }
+
+      if (*lineptr != '\"')
+        continue;
+
+      lineptr ++;
+      for (ptr = text; *lineptr && *lineptr != '\"'; lineptr ++)
+      {
+        if (*lineptr == '\\')
+        {
+          // Handle C escape
+          int ch;			// Quoted character
+
+          lineptr ++;
+          if (*lineptr == '\\')
+            ch = '\\';
+          else if (*lineptr == '\"')
+            ch = '\"';
+          else if (*lineptr == 'n')
+            ch = '\n';
+          else if (*lineptr == 'r')
+            ch = '\r';
+          else if (*lineptr == 't')
+            ch = '\t';
+          else if (isdigit(*lineptr & 255) && isdigit(lineptr[1] & 255) && isdigit(lineptr[2] & 255))
+          {
+            ch = ((*lineptr - '0') << 6) | ((lineptr[1] - '0') << 3) | (lineptr[2] - '0');
+            lineptr += 2;
+          }
+          else
+            ch = *lineptr;
+
+          if (ptr < (text + sizeof(text) - 1))
+            *ptr++ = (char)ch;
+        }
+        else if (ptr < (text + sizeof(text) - 1))
+          *ptr++ = *lineptr;
+      }
+
+      *ptr = '\0';
+
+      if (*lineptr != '\"')
+        continue;
+
+      // Check whether the pair already exists...
+      pair.comment = comment[0] ? comment : NULL;
+      pair.key     = text;
+      pair.text    = text;
+
+      if (!cupsArrayFind(sf->pairs, &pair))
+      {
+        // No, add it!
+        cupsArrayAdd(sf->pairs, &pair);
+        changes ++;
+      }
+    }
+
+    fclose(fp);
+  }
+
+  // Write out any changes as needed...
+  if (changes == 0)
+  {
+    puts(SFSTR("stringsutil: No new strings."));
+    return (0);
+  }
+  else if (changes == 1)
+  {
+    puts(SFSTR("stringsutil: 1 new string."));
+  }
+  else
+  {
+    printf(SFSTR("stringsutil: %d new strings.\n"), changes);
+  }
+
+  return (write_strings(sf, sfname) ? 0 : 1);
 }
 
 
@@ -277,4 +487,83 @@ usage(FILE *fp,				// I - Where to send usage
   fputs(SFSTR("  scan                 Scan C/C++ source files for strings.\n"), fp);
 
   return (status);
+}
+
+
+//
+// 'write_string()' - Write a quoted C string.
+//
+
+static void
+write_string(FILE       *fp,		// I - Output file
+             const char *s,		// I - String
+             bool       code)		// I - Write as embedded code string
+{
+  const char *escape = code ? "\\\\" : "\\";
+					// Escape for string
+
+
+  if (code)
+    fputs("\\\"", fp);
+  else
+    putc('\"', fp);
+
+  while (*s)
+  {
+    if (*s == '\\')
+      fprintf(fp, "%s%s", escape, escape);
+    else if (*s == '\"')
+      fprintf(fp, "%s\"", escape);
+    else if (*s == '\n')
+      fprintf(fp, "%sn", escape);
+    else if (*s == '\r')
+      fprintf(fp, "%sr", escape);
+    else if (*s == '\t')
+      fprintf(fp, "%st", escape);
+    else if ((*s > 0 && *s < ' ') || *s == 0x7f)
+      fprintf(fp, "%s%03o", escape, *s);
+    else
+      putc(*s, fp);
+
+    s ++;
+  }
+
+  if (code)
+    fputs("\\\"", fp);
+  else
+    putc('\"', fp);
+}
+
+
+//
+// 'write_strings()' - Write a strings file.
+//
+
+static bool				// O - `true` on success, `false` on failure
+write_strings(strings_file_t *sf,	// I - Strings
+              const char     *sfname)	// I - Strings filename
+{
+  FILE		*fp;			// File
+  _sf_pair_t	*pair;			// Current pair
+
+
+  if ((fp = fopen(sfname, "w")) == NULL)
+  {
+    fprintf(stderr, SFSTR(/*Unable to create .strings file*/"stringsutil: Unable to create '%s': %s\n"), sfname, strerror(errno));
+    return (false);
+  }
+
+  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  {
+    if (pair->comment)
+      fprintf(fp, "/* %s */\n", pair->comment);
+    write_string(fp, pair->key, false);
+    fputs(" = ", fp);
+    write_string(fp, pair->text, false);
+    fputs(";\n", fp);
+  }
+
+  fclose(fp);
+
+  return (true);
 }
