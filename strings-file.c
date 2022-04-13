@@ -147,7 +147,7 @@ sfLoadFromFile(strings_file_t *sf,	// I - Localization strings
     _sfSetError(sf, "Unable to read '%s': %s", filename, strerror(errno));
     close(fd);
     free(data);
-    return (data);
+    return (false);
   }
 #ifdef DEBUG
   else if (bytes < (ssize_t)fileinfo.st_size)
