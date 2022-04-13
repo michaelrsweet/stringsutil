@@ -135,6 +135,12 @@ main(int  argc,				// I - Number of command-line arguments
   }
 
   // Do the command...
+  if (!sf)
+  {
+    fputs(SFSTR("stringsutil: Expected strings file.\n"), stderr);
+    return (usage(stderr, 1));
+  }
+
   if (!command)
   {
     fputs(SFSTR("stringsutil: Expected command name.\n"), stderr);
