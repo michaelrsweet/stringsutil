@@ -6,3 +6,6 @@ cert-EXP05-C
 // of files!
 cert-MSC24-C
 
+// char varname[1024] = ""; throws a warning but shouldn't...
+cert-STR05-C
+
