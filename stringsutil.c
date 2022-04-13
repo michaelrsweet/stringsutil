@@ -23,6 +23,7 @@
 //
 
 static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
+static void	import_string(strings_file_t *sf, char *msgid, char *msgstr, char           *comment, bool addnew, int *added, int *ignored, int *modified);
 static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename, bool addnew);
 static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename, bool clean);
 static int	report_strings(strings_file_t *sf, const char *filename);
@@ -871,6 +872,8 @@ usage(FILE *fp,				// I - Where to send usage
 {
   fputs(SFSTR("Usage: stringsutil [OPTIONS] COMMAND FILENAME(S)\n"), fp);
   fputs(SFSTR("Options:\n"), fp);
+  fputs(SFSTR("  -a                   Add new strings (import).\n"), fp);
+  fputs(SFSTR("  -c                   Remove old strings (merge).\n"), fp);
   fputs(SFSTR("  -f FILENAME.strings  Specify strings file.\n"), fp);
   fputs(SFSTR("  -n NAME              Specify function/macro name for localization.\n"), fp);
   fputs(SFSTR("  --help               Show program help.\n"), fp);
