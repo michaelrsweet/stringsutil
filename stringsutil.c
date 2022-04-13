@@ -9,10 +9,10 @@
 // Usage:
 //
 //   stringsutil scan -f FILENAME.strings SOURCE-FILE(S)
-//   stringsutil merge [-c] -f FILENAME.strings FILENAME2.strings
-//   stringsutil export -f FILENAME.strings FILENAME.{po,h}
-//   stringsutil import -f FILENAME.strings FILENAME.po
-//   stringsutil report -f FILENAME.strings FILENAME2.strings
+//   stringsutil merge [-c] -f FILENAME-LL.strings FILENAME.strings
+//   stringsutil export -f FILENAME.strings FILENAME.{c,cc,cpp,cxx,h,po}
+//   stringsutil import [-a] -f FILENAME.strings FILENAME.{po,strings}
+//   stringsutil report -f FILENAME.strings FILENAME-LL.strings
 //
 
 #include "strings-file-private.h"
@@ -879,8 +879,8 @@ usage(FILE *fp,				// I - Where to send usage
   fputs(SFSTR("  --help               Show program help.\n"), fp);
   fputs(SFSTR("  --version            Show program version.\n"), fp);
   fputs(SFSTR("Commands:\n"), fp);
-  fputs(SFSTR("  export               Export strings to GNU gettext .po or C header file.\n"), fp);
-  fputs(SFSTR("  import               Import strings from GNU gettext .po file.\n"), fp);
+  fputs(SFSTR("  export               Export strings to GNU gettext .po or C source file.\n"), fp);
+  fputs(SFSTR("  import               Import strings from GNU gettext .po or .strings file.\n"), fp);
   fputs(SFSTR("  merge                Merge strings from another strings file.\n"), fp);
   fputs(SFSTR("  report               Report untranslated strings in the specified strings file(s).\n"), fp);
   fputs(SFSTR("  scan                 Scan C/C++ source files for strings.\n"), fp);
