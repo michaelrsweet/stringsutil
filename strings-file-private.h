@@ -23,7 +23,6 @@
 #    include <unistd.h>
 #    include <fcntl.h>
 #  endif // _WIN32
-#  include <cups/array.h>
 #  include "strings-file.h"
 #  ifdef __cplusplus
 extern "C" {
@@ -41,12 +40,6 @@ extern "C" {
 // Types...
 //
 
-struct _strings_file_s			// Strings file
-{
-  cups_array_t	*pairs;			// Array of string pairs
-  char		error[256];		// Last error message
-};
-
 typedef struct _sf_pair_s		// String pair
 {
   char		*key,			// Key string
@@ -54,14 +47,25 @@ typedef struct _sf_pair_s		// String pair
 		*comment;		// Associated comment, if any
 } _sf_pair_t;
 
+struct _strings_file_s			// Strings file
+{
+  bool		need_sort;		// Do we need to sort?
+  size_t	num_pairs,		// Number of pairs
+		alloc_pairs;		// Allocated pairs
+  _sf_pair_t	*pairs;			// Array of string pairs
+  char		error[256];		// Last error message
+};
+
 
 //
 // Functions...
 //
 
+extern bool		_sfAdd(strings_file_t *sf, const char *key, const char *text, const char *comment);
+extern _sf_pair_t	*_sfFind(strings_file_t *sf, const char *key);
 extern int		_sfPairCompare(_sf_pair_t *a, _sf_pair_t *b);
-extern _sf_pair_t	*_sfPairCopy(_sf_pair_t *pair);
 extern void		_sfPairFree(_sf_pair_t *pair);
+extern void		_sfRemove(strings_file_t *sf, size_t n);
 extern void		_sfSetError(strings_file_t *sf, const char *message, ...) _SF_FORMAT(2,3);
 
 

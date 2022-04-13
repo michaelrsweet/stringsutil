@@ -12,17 +12,94 @@
 
 
 //
+// '_sfAdd()' - Add a key/text pair...
+//
+
+bool					// O - `true` on success, `false` on error
+_sfAdd(strings_file_t *sf,		// I - Strings
+       const char     *key,		// I - Key
+       const char     *text,		// I - Text
+       const char     *comment)		// I - Comment, if any
+{
+  _sf_pair_t	*pair;			// New pair
+
+
+  if (sf->num_pairs >= sf->alloc_pairs)
+  {
+    if ((pair = realloc(sf->pairs, (sf->alloc_pairs + 32) * sizeof(_sf_pair_t))) == NULL)
+    {
+      _sfSetError(sf, "Unable to allocate memory for pair.");
+      return (false);
+    }
+
+    sf->pairs = pair;
+    sf->alloc_pairs += 32;
+  }
+
+  pair          = sf->pairs + sf->num_pairs;
+  pair->key     = strdup(key);
+  pair->text    = strdup(text);
+  pair->comment = comment && *comment ? strdup(comment) : NULL;
+
+  if (!pair->key || !pair->text || (!pair->comment && comment && *comment))
+  {
+    _sfSetError(sf, "Unable to copy strings.");
+    return (false);
+  }
+
+  sf->num_pairs ++;
+  sf->need_sort = sf->num_pairs > 1;
+
+  return (true);
+}
+
+
+//
 // 'sfDelete()' - Free localization strings.
 //
 
 void
 sfDelete(strings_file_t	*sf)		// I - Localization strings
 {
-  if (sf)
+  _sf_pair_t	*pair;			// Current pair
+  size_t	count;			// Number of pairs
+
+
+  // Range check input...
+  if (!sf)
+    return;
+
+  // Free memory...
+  for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
+    _sfPairFree(pair);
+
+  free(sf->pairs);
+  free(sf);
+}
+
+
+//
+// '_sfFind()' - Find a pair.
+//
+
+_sf_pair_t *				// O - Matching pair or `NULL`
+_sfFind(strings_file_t *sf,		// I - Strings
+        const char     *key)		// I - Key
+{
+  _sf_pair_t	pair;			// Search key
+
+
+  // Sort as needed...
+  if (sf->need_sort)
   {
-    cupsArrayDelete(sf->pairs);
-    free(sf);
+    // TODO: Add mutex
+    qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+    sf->need_sort = false;
   }
+
+  pair.key = (char *)key;
+
+  return ((_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare));
 }
 
 
@@ -79,8 +156,7 @@ const char *				// O - Localized string
 sfGetString(strings_file_t *sf,		// I - Localization strings
             const char     *key)	// I - Key string
 {
-  _sf_pair_t	search,			// Search key
-		*match;			// Matching pair, if any
+  _sf_pair_t	*match;			// Matching pair, if any
 
 
   // Range check input...
@@ -88,8 +164,7 @@ sfGetString(strings_file_t *sf,		// I - Localization strings
     return (key);
 
   // Look up the key...
-  search.key = (char *)key;
-  match      = cupsArrayFind(sf->pairs, &search);
+  match = _sfFind(sf, key);
 
   // Return a string to use...
   return (match ? match->text : key);
@@ -182,10 +257,9 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
   const char	*dataptr;		// Pointer into string data
   char		key[1024],		// Key string
 		text[1024],		// Localized text string
-		comment[1024],		// Comment string, if any
+		comment[1024] = "",	// Comment string, if any
 		*ptr;			// Pointer into strings
   int		linenum;		// Line number
-  _sf_pair_t	pair;			// New pair
 
 
   // Scan the in-memory strings data and add key/text pairs...
@@ -194,12 +268,6 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
   //
   // / * optional comment * /
   // "key" = "text";
-  pair.key     = key;
-  pair.text    = text;
-  pair.comment = comment;
-
-  comment[0] = '\0';
-
   for (dataptr = data, linenum = 1; *dataptr; dataptr ++)
   {
     // Skip leading whitespace...
@@ -409,8 +477,11 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 
     dataptr ++;
 
-    if (!cupsArrayFind(sf->pairs, &pair))
-      cupsArrayAdd(sf->pairs, &pair);
+    if (!_sfFind(sf, key))
+    {
+      if (!_sfAdd(sf, key, text, comment))
+        return (false);
+    }
 
     comment[0] = '\0';
   }
@@ -428,13 +499,7 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 strings_file_t *			// O - Localization strings
 sfNew(void)
 {
-  strings_file_t	*sf;		// Localization strings
-
-
-  if ((sf = calloc(1, sizeof(strings_file_t))) != NULL)
-    sf->pairs = cupsArrayNew3((cups_array_func_t)_sfPairCompare, NULL, NULL, 0, (cups_acopy_func_t)_sfPairCopy, (cups_afree_func_t)_sfPairFree);
-
-  return (sf);
+  return ((strings_file_t *)calloc(1, sizeof(strings_file_t)));
 }
 
 
@@ -451,37 +516,6 @@ _sfPairCompare(_sf_pair_t *a,		// I - First key/text pair
 
 
 //
-// '_sfPairCopy()' - Copy a key/text pair.
-//
-
-_sf_pair_t *				// O - Copy of pair
-_sfPairCopy(_sf_pair_t *pair)		// I - Pair to copy
-{
-  _sf_pair_t	*npair;			// New pair
-
-
-  // Allocate a new pair...
-  if ((npair = calloc(1, sizeof(_sf_pair_t))) != NULL)
-  {
-    // Duplicate the strings...
-    npair->key  = strdup(pair->key);
-    npair->text = strdup(pair->text);
-    if (pair->comment && pair->comment[0])
-      npair->comment = strdup(pair->comment);
-
-    if (!npair->key || !npair->text || (!npair->comment && pair->comment && pair->comment[0]))
-    {
-      // Wasn't able to allocate everything...
-      _sfPairFree(npair);
-      npair = NULL;
-    }
-  }
-
-  return (npair);
-}
-
-
-//
 // '_sfPairFree()' - Free memory used by a key/text pair.
 //
 
@@ -491,7 +525,24 @@ _sfPairFree(_sf_pair_t *pair)		// I - Pair
   free(pair->key);
   free(pair->text);
   free(pair->comment);
-  free(pair);
+}
+
+
+//
+// '_sfRemove()' - Remove a pair from a strings file.
+//
+
+void
+_sfRemove(strings_file_t *sf,		// I - Localization strings
+          size_t         n)		// I - Pair index
+{
+  // Free memory and then squeeze array as needed...
+  _sfPairFree(sf->pairs + n);
+
+  sf->num_pairs --;
+
+  if (n < sf->num_pairs)
+    memmove(sf->pairs + n, sf->pairs + n + 1, (sf->num_pairs - n) * sizeof(_sf_pair_t));
 }
 
 

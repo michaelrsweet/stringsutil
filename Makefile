@@ -91,7 +91,7 @@ test:		stringsutil
 	rm -f test.strings
 	echo "Scan test: \c"
 	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c) >test.log 2>&1
-	if test -f test.strings -a "$$(wc -l test.strings 2>/dev/null | awk '{print $$1}')" = 42; then \
+	if test -f test.strings -a $$(wc -l <test.strings 2>/dev/null) = 42; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not scan the expected number of strings)"; \
@@ -100,7 +100,7 @@ test:		stringsutil
 	fi
 	echo "Export test (C code): \c"
 	./stringsutil -f test.strings export test.c >test.log 2>&1
-	if test -f test.c -a "$$(wc -l test.c 2>/dev/null | awk '{print $$1}')" = 42; then \
+	if test -f test.c -a $$(wc -l <test.c 2>/dev/null) = 42; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not export the expected number of strings)"; \
@@ -117,7 +117,7 @@ test:		stringsutil
 	fi
 	echo "Export test (GNU gettext po): \c"
 	./stringsutil -f test.strings export test.po >test.log 2>&1
-	if test -f test.po -a "$$(wc -l test.po 2>/dev/null | awk '{print $$1}')" = 124; then \
+	if test -f test.po -a $$(wc -l <test.po 2>/dev/null) = 124; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not export the expected number of lines)"; \
@@ -134,7 +134,7 @@ test:		stringsutil
 	fi
 	echo "Import test (test-zz.po): \c"
 	if ./stringsutil -f test.strings import test-zz.po >test.log 2>&1; then \
-		if test "$$(wc -l test.strings | awk '{print $$1}')" = 42; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 42; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not preserve strings)"; \
@@ -148,7 +148,7 @@ test:		stringsutil
 	fi
 	echo "Import test (test-zz.po -a): \c"
 	if ./stringsutil -f test.strings import -a test-zz.po >test.log 2>&1; then \
-		if test "$$(wc -l test.strings | awk '{print $$1}')" = 44; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 44; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not add new strings)"; \
@@ -162,7 +162,7 @@ test:		stringsutil
 	fi
 	echo "Import test (test-zz.strings): \c"
 	if ./stringsutil -f test.strings import test-zz.strings >test.log 2>&1; then \
-		if test "$$(wc -l test.strings | awk '{print $$1}')" = 44; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 44; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not preserve strings)"; \

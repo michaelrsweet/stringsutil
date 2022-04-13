@@ -206,8 +206,8 @@ export_strings(strings_file_t *sf,	// I - Strings
   const char	*ext;			// Filename extension
   bool		code;			// Writing C code?
   FILE		*fp;			// File
-  _sf_pair_t	*pair,			// Current pair
-		*next;			// Next pair
+  _sf_pair_t	*pair;			// Current pair
+  size_t	count;			// Number of pairs remaining
 
 
   if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".h") && strcmp(ext, ".c") && strcmp(ext, ".cc") && strcmp(ext, ".cpp") && strcmp(ext, ".cxx")))
@@ -239,10 +239,8 @@ export_strings(strings_file_t *sf,	// I - Strings
     fputs(" = ", fp);
   }
 
-  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = next)
+  for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
   {
-    next = (_sf_pair_t *)cupsArrayNext(sf->pairs);
-
     if (code)
     {
       if (pair->comment)
@@ -265,7 +263,7 @@ export_strings(strings_file_t *sf,	// I - Strings
 
     write_string(fp, pair->text, code);
 
-    if (code && next)
+    if (code && count > 1)
       fputs(";\\n\"\n", fp);
     else if (code)
       fputs(";\\n\";\n", fp);
@@ -293,17 +291,14 @@ import_string(strings_file_t *sf,	// I  - Strings
               int            *ignored,	// IO - Number of ignored strings
               int            *modified)	// IO - Number of modified strings
 {
-  _sf_pair_t	pair,			// New pair/search key
-		*match;			// Matching existing entry
+  _sf_pair_t	*match;			// Matching existing entry
   bool		clear = false;		// Clear incoming strings?
 
 
   if (*msgid && *msgstr)
   {
     // See if this is an existing string...
-    pair.key = msgid;
-
-    if ((match = (_sf_pair_t *)cupsArrayFind(sf->pairs, &pair)) != NULL)
+    if ((match = _sfFind(sf, msgid)) != NULL)
     {
       // Found a match...
       if (strcmp(match->text, msgstr))
@@ -318,10 +313,7 @@ import_string(strings_file_t *sf,	// I  - Strings
     else if (addnew)
     {
       // Add new string...
-      pair.text    = msgstr;
-      pair.comment = comment;
-
-      cupsArrayAdd(sf->pairs, &pair);
+      _sfAdd(sf, msgid, msgstr, comment);
       (*added) ++;
       clear = true;
     }
@@ -523,6 +515,7 @@ import_strings(strings_file_t *sf,	// I - Strings
     strings_file_t	*isf;		// Import strings
     _sf_pair_t		*pair,		// Existing pair
 			*ipair;		// Imported pair
+    size_t		count;		// Number of pairs
 
     isf = sfNew();
     if (!sfLoadFromFile(isf, filename))
@@ -532,9 +525,9 @@ import_strings(strings_file_t *sf,	// I - Strings
       return (1);
     }
 
-    for (ipair = (_sf_pair_t *)cupsArrayFirst(isf->pairs); ipair; ipair = (_sf_pair_t *)cupsArrayNext(isf->pairs))
+    for (count = isf->num_pairs, ipair = isf->pairs; count > 0; count --, ipair ++)
     {
-      if ((pair = (_sf_pair_t *)cupsArrayFind(sf->pairs, ipair)) != NULL)
+      if ((pair = _sfFind(sf, ipair->key)) != NULL)
       {
         // Existing string, check for differences...
         if (strcmp(pair->text, ipair->text))
@@ -548,7 +541,7 @@ import_strings(strings_file_t *sf,	// I - Strings
       else if (addnew)
       {
         // Add new string...
-        cupsArrayAdd(sf->pairs, ipair);
+        _sfAdd(sf, ipair->key, ipair->text, ipair->comment);
         added ++;
       }
       else
@@ -584,6 +577,7 @@ merge_strings(strings_file_t *sf,	// I - Strings
   strings_file_t	*msf;		// Strings file to merge
   _sf_pair_t		*pair,		// Current pair
 			*mpair;		// Merge pair
+  size_t		count;		// Remaining pairs
   int			added = 0,	// Number of added strings
 			removed = 0;	// Number of removed strings
 
@@ -598,25 +592,32 @@ merge_strings(strings_file_t *sf,	// I - Strings
   }
 
   // Loop through the merge list and add any new strings...
-  for (mpair = (_sf_pair_t *)cupsArrayFirst(msf->pairs); mpair; mpair = (_sf_pair_t *)cupsArrayNext(msf->pairs))
+  for (count = msf->num_pairs, mpair = msf->pairs; count > 0; count --, mpair ++)
   {
-    if (cupsArrayFind(sf->pairs, mpair))
+    if (_sfFind(sf, mpair->key))
       continue;
 
     added ++;
-    cupsArrayAdd(sf->pairs, mpair);
+    _sfAdd(sf, mpair->key, mpair->text, mpair->comment);
   }
 
   // Then clean old messages (if needed)...
   if (clean)
   {
-    for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+    for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
     {
-      if (cupsArrayFind(msf->pairs, pair))
+      if (_sfFind(msf, pair->key))
 	continue;
 
       removed ++;
-      cupsArrayRemove(sf->pairs, pair);
+
+      _sfRemove(sf, pair - sf->pairs);
+
+      pair --;
+      count --;
+
+      if (count == 0)
+        break;
     }
   }
 
@@ -643,6 +644,7 @@ report_strings(strings_file_t *sf,	// I - Strings
   strings_file_t	*rsf;		// Strings file to report
   _sf_pair_t		*pair,		// Current pair
 			*rpair;		// Report pair
+  size_t		count;		// Number of pairs
   int			total,		// Total messages
 			translated = 0,	// Translated messages
 			missing = 0,	// Missing messages
@@ -661,9 +663,9 @@ report_strings(strings_file_t *sf,	// I - Strings
   }
 
   // Loop through the report list and check strings...
-  for (rpair = (_sf_pair_t *)cupsArrayFirst(rsf->pairs); rpair; rpair = (_sf_pair_t *)cupsArrayNext(rsf->pairs))
+  for (count = rsf->num_pairs, rpair = rsf->pairs; count > 0; count --, rpair ++)
   {
-    if ((pair = cupsArrayFind(sf->pairs, rpair)) == NULL)
+    if ((pair = _sfFind(sf, rpair->key)) == NULL)
     {
       old ++;
       continue;
@@ -676,9 +678,9 @@ report_strings(strings_file_t *sf,	// I - Strings
   }
 
   // Then look for new messages that haven't been merged...
-  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
   {
-    if (cupsArrayFind(rsf->pairs, pair))
+    if (_sfFind(rsf, pair->key))
       continue;
 
     missing ++;
@@ -720,7 +722,6 @@ scan_files(strings_file_t *sf,		// I - Strings
 		comment[1024],		// Comment string (if any)
 		text[1024],		// Text string
 		*ptr;			// Pointer into comment/text
-  _sf_pair_t	pair;			// New pair
   int		changes = 0;		// How many added strings?
 
 
@@ -834,14 +835,10 @@ scan_files(strings_file_t *sf,		// I - Strings
         continue;
 
       // Check whether the pair already exists...
-      pair.comment = comment[0] ? comment : NULL;
-      pair.key     = text;
-      pair.text    = text;
-
-      if (!cupsArrayFind(sf->pairs, &pair))
+      if (!_sfFind(sf, text))
       {
         // No, add it!
-        cupsArrayAdd(sf->pairs, &pair);
+        _sfAdd(sf, text, text, comment[0] ? comment : NULL);
         changes ++;
       }
     }
@@ -950,6 +947,7 @@ write_strings(strings_file_t *sf,	// I - Strings
 {
   FILE		*fp;			// File
   _sf_pair_t	*pair;			// Current pair
+  size_t	count;			// Number of pairs
 
 
   if ((fp = fopen(sfname, "w")) == NULL)
@@ -958,7 +956,7 @@ write_strings(strings_file_t *sf,	// I - Strings
     return (false);
   }
 
-  for (pair = (_sf_pair_t *)cupsArrayFirst(sf->pairs); pair; pair = (_sf_pair_t *)cupsArrayNext(sf->pairs))
+  for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
   {
     if (pair->comment)
       fprintf(fp, "/* %s */\n", pair->comment);
