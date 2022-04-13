@@ -49,7 +49,7 @@ main(int  argc,				// I - Number of command-line arguments
 		*opt;			// Pointer to option
   bool		addnew = false,		// Add new strings on import?
 		clean = false;		// Clean old strings?
-  const char	*sfname;		// Strings filename
+  const char	*sfname = NULL;		// Strings filename
   strings_file_t *sf = NULL;		// Strings file
   struct stat	sfinfo;			// Strings file info
 
