@@ -88,19 +88,51 @@ libsf.a:	strings-file.o
 	$(RANLIB) $@
 
 test:		stringsutil
-	echo "Testing..."
 	rm -f test.strings
-	echo "Scan test..."
-	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c)
-	if test ! -f test.strings -o "$$(wc -l test.strings 2>/dev/null | awk '{print $$1}')0" -ne 350; then \
-		echo "Did not scan the expected number of strings."; \
+	echo "Scan test: \c"
+	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c) >test.log 2>&1
+	if test -f test.strings -a "$$(wc -l test.strings 2>/dev/null | awk '{print $$1}')" = 35; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL (Did not scan the expected number of strings)"; \
+		cat test.log; \
 		exit 1; \
 	fi
-	echo "Export tests..."
-	./stringsutil -f test.strings export test.h
-	./stringsutil -f test.strings export test.po
-	echo "Report tests..."
-	./stringsutil -f test.strings report test-zz.strings
+	echo "Export test (C code): \c"
+	./stringsutil -f test.strings export test.c >test.log 2>&1
+	if test -f test.c -a "$$(wc -l test.c 2>/dev/null | awk '{print $$1}')" = 35; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL (Did not export the expected number of strings)"; \
+		cat test.log; \
+		exit 1; \
+	fi
+	echo "Compile test: \c"
+	if gcc -o test.o -c test.c >test.log 2>&1; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL"; \
+		cat test.log; \
+		exit 1; \
+	fi
+	echo "Export test (GNU gettext po): \c"
+	./stringsutil -f test.strings export test.po >test.log 2>&1
+	if test -f test.po -a "$$(wc -l test.po 2>/dev/null | awk '{print $$1}')" = 103; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL (Did not export the expected number of lines)"; \
+		cat test.log; \
+		exit 1; \
+	fi
+	echo "Report test: \c"
+	if ./stringsutil -f test.strings report test-zz.strings >test.log 2>&1; then \
+		echo "PASS"; \
+	else \
+		echo "FAIL"; \
+		cat test.log; \
+		exit 1; \
+	fi
+	rm -f test.c test.log test.o test.po test.strings
 	echo "All tests passed."
 
 

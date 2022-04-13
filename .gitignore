@@ -1,6 +1,7 @@
 *.o
-test.strings
+test.c
+test.log
 test.po
-test.h
+test.strings
 stringsutil
 libsf.a
