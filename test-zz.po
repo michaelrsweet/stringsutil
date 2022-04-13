@@ -1,5 +1,5 @@
 #
-# PO test file for StringsUtil.
+# Pig latin PO test file for StringsUtil.
 #
 #     https://github.com/michaelrsweet/stringsutil
 #
@@ -25,7 +25,7 @@ msgstr ""
 
 # Bogus comment
 msgid "BOGUS"
-msgstr "A bogus text string."
+msgstr "Ayay ogusbay exttay ingstray."
 
 msgid "Commands:\n"
 msgstr "Ommandscay:\n"

@@ -314,7 +314,6 @@ import_string(strings_file_t *sf,	// I  - Strings
       pair.text    = msgstr;
       pair.comment = comment;
 
-      fprintf(stderr, "import_string: Adding '%s'='%s' /* %s */\n", msgid, msgstr, comment);
       cupsArrayAdd(sf->pairs, &pair);
       (*added) ++;
       clear = true;
@@ -347,159 +346,215 @@ import_strings(strings_file_t *sf,	// I - Strings
                const char     *filename,// I - Import filename
                bool           addnew)	// I - Add new strings?
 {
-  FILE		*fp;			// PO file
-  char		line[1024],		// Line buffer
-		*lineptr,		// Pointer into line
-		comment[1024] = "",	// Comment string
-		msgid[1024] = "",	// msgid buffer
-		msgstr[1024] = "",	// msgstr buffer
-		*end = NULL,		// End of buffer
-		*ptr = NULL;		// Position in buffer
+  const char	*ext;			// Filename extension...
   int		linenum = 0,		// Current line number
 		added = 0,		// Number of added strings
 		ignored = 0,		// Number of ignored strings
 		modified = 0;		// Number of modified strings
 
 
-  // Open the PO file...
-  if ((fp = fopen(filename, "r")) == NULL)
+  if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".strings")))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unable to open PO file '%s': %s\n"), filename, strerror(errno));
+    fprintf(stderr, SFSTR("stringsutil: Unknown import format for '%s'.\n"), filename);
     return (1);
   }
 
-  // Read lines until the end...
-  while (fgets(line, sizeof(line), fp))
+  if (!strcmp(ext, ".po"))
   {
-    linenum ++;
+    // Import a GNU gettext .po file...
+    FILE	*fp;			// PO file
+    char	line[1024],		// Line buffer
+		*lineptr,		// Pointer into line
+		comment[1024] = "",	// Comment string
+		msgid[1024] = "",	// msgid buffer
+		msgstr[1024] = "",	// msgstr buffer
+		*end = NULL,		// End of buffer
+		*ptr = NULL;		// Position in buffer
 
-    lineptr = line;
-
-    if (*lineptr == '#')
+    // Open the PO file...
+    if ((fp = fopen(filename, "r")) == NULL)
     {
-      // Comment...
-      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
-
-      // Skip whitespace
-      lineptr ++;
-      while (*lineptr && isspace(*lineptr & 255))
-        lineptr ++;
-
-      // Append comment...
-      ptr = comment + strlen(comment);
-      end = comment + sizeof(comment) - 1;
-
-      if (ptr > comment && ptr < end)
-        *ptr++ = ' ';			// Add initial space if this isn't the first comment line
-
-      while (*lineptr && *lineptr != '\n' && ptr < end)
-        *ptr++ = *lineptr++;
-
-      *ptr = '\0';
-      ptr  = end = NULL;
-      continue;
-    }
-    else if (!strncmp(line, "msgid ", 6))
-    {
-      // Start of message ID...
-      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
-
-      lineptr += 6;
-      while (*lineptr && isspace(*lineptr & 255))
-        lineptr ++;
-
-      ptr = msgid;
-      end = msgid + sizeof(msgid) - 1;
-    }
-    else if (!strncmp(line, "msgstr ", 7))
-    {
-      // Start of message string...
-      lineptr += 7;
-      while (*lineptr && isspace(*lineptr & 255))
-        lineptr ++;
-
-      ptr = msgstr;
-      end = msgstr + sizeof(msgstr) - 1;
-    }
-    else if (*lineptr == '\n')
-    {
-      // Blank line
-      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
-      ptr = end = NULL;
-      comment[0] = '\0';
-      continue;
-    }
-
-    if (*lineptr != '\"' || !ptr)
-    {
-      // Something unexpected...
-      fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
-      fclose(fp);
+      fprintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s\n"), filename, strerror(errno));
       return (1);
     }
 
-    // Append string...
-    lineptr ++;
-    while (*lineptr && *lineptr != '\"')
+    // Read lines until the end...
+    while (fgets(line, sizeof(line), fp))
     {
-      if (*lineptr == '\\')
+      linenum ++;
+
+      lineptr = line;
+
+      if (*lineptr == '#')
       {
-        // Add escaped character...
-        int	ch;			// Escaped character
+	// Comment...
+	import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
 
-        lineptr ++;
-        if (*lineptr == '\\' || *lineptr == '\"' || *lineptr == '\'')
-        {
-          // Simple escape...
-          ch = *lineptr;
-        }
-        else if (*lineptr == 'n')
-        {
-          // Newline
-          ch = '\n';
-        }
-        else if (*lineptr == 'r')
-        {
-          // Carriage return
-          ch = '\r';
-        }
-        else if (*lineptr == 't')
-        {
-          // Horizontal tab
-          ch = '\t';
-        }
-        else if (*lineptr >= '0' && *lineptr <= '3' && lineptr[1] >= '0' && lineptr[1] <= '7' && lineptr[2] >= '0' && lineptr[2] <= '7')
-        {
-          // Octal escape
-          ch = ((*lineptr - '0') << 6) | ((lineptr[1] - '0') << 3) | (lineptr[2] - '0');
-        }
-        else
-        {
-	  fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
-	  fclose(fp);
-	  return (1);
-        }
+	// Skip whitespace
+	lineptr ++;
+	while (*lineptr && isspace(*lineptr & 255))
+	  lineptr ++;
 
-        if (ptr < end)
-          *ptr++ = (char)ch;
+	// Append comment...
+	ptr = comment + strlen(comment);
+	end = comment + sizeof(comment) - 1;
+
+	if (ptr > comment && ptr < end)
+	  *ptr++ = ' ';			// Add initial space if this isn't the first comment line
+
+	while (*lineptr && *lineptr != '\n' && ptr < end)
+	  *ptr++ = *lineptr++;
+
+	*ptr = '\0';
+	ptr  = end = NULL;
+	continue;
       }
-      else if (ptr < end)
+      else if (!strncmp(line, "msgid ", 6))
       {
-        // Add literal character...
-        *ptr++ = *lineptr;
+	// Start of message ID...
+	import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+
+	lineptr += 6;
+	while (*lineptr && isspace(*lineptr & 255))
+	  lineptr ++;
+
+	ptr = msgid;
+	end = msgid + sizeof(msgid) - 1;
+      }
+      else if (!strncmp(line, "msgstr ", 7))
+      {
+	// Start of message string...
+	lineptr += 7;
+	while (*lineptr && isspace(*lineptr & 255))
+	  lineptr ++;
+
+	ptr = msgstr;
+	end = msgstr + sizeof(msgstr) - 1;
+      }
+      else if (*lineptr == '\n')
+      {
+	// Blank line
+	import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+	ptr = end = NULL;
+	comment[0] = '\0';
+	continue;
       }
 
+      if (*lineptr != '\"' || !ptr)
+      {
+	// Something unexpected...
+	fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+	fclose(fp);
+	return (1);
+      }
+
+      // Append string...
       lineptr ++;
+      while (*lineptr && *lineptr != '\"')
+      {
+	if (*lineptr == '\\')
+	{
+	  // Add escaped character...
+	  int	ch;			// Escaped character
+
+	  lineptr ++;
+	  if (*lineptr == '\\' || *lineptr == '\"' || *lineptr == '\'')
+	  {
+	    // Simple escape...
+	    ch = *lineptr;
+	  }
+	  else if (*lineptr == 'n')
+	  {
+	    // Newline
+	    ch = '\n';
+	  }
+	  else if (*lineptr == 'r')
+	  {
+	    // Carriage return
+	    ch = '\r';
+	  }
+	  else if (*lineptr == 't')
+	  {
+	    // Horizontal tab
+	    ch = '\t';
+	  }
+	  else if (*lineptr >= '0' && *lineptr <= '3' && lineptr[1] >= '0' && lineptr[1] <= '7' && lineptr[2] >= '0' && lineptr[2] <= '7')
+	  {
+	    // Octal escape
+	    ch = ((*lineptr - '0') << 6) | ((lineptr[1] - '0') << 3) | (lineptr[2] - '0');
+	  }
+	  else
+	  {
+	    fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+	    fclose(fp);
+	    return (1);
+	  }
+
+	  if (ptr < end)
+	    *ptr++ = (char)ch;
+	}
+	else if (ptr < end)
+	{
+	  // Add literal character...
+	  *ptr++ = *lineptr;
+	}
+
+	lineptr ++;
+      }
+
+      *ptr = '\0';
     }
 
-    *ptr = '\0';
+    // All done, import the last string, if any...
+    import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+
+    fclose(fp);
+  }
+  else
+  {
+    // Import a .strings file...
+    strings_file_t	*isf;		// Import strings
+    _sf_pair_t		*pair,		// Existing pair
+			*ipair;		// Imported pair
+
+    isf = sfNew();
+    if (!sfLoadFromFile(isf, filename))
+    {
+      fprintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s\n"), filename, sfGetError(isf));
+      sfDelete(isf);
+      return (1);
+    }
+
+    for (ipair = (_sf_pair_t *)cupsArrayFirst(isf->pairs); ipair; ipair = (_sf_pair_t *)cupsArrayNext(isf->pairs))
+    {
+      if ((pair = (_sf_pair_t *)cupsArrayFind(sf->pairs, ipair)) != NULL)
+      {
+        // Existing string, check for differences...
+        if (strcmp(pair->text, ipair->text))
+        {
+          // Yes
+          free(pair->text);
+          pair->text = strdup(ipair->text);
+          modified ++;
+        }
+      }
+      else if (addnew)
+      {
+        // Add new string...
+        cupsArrayAdd(sf->pairs, ipair);
+        added ++;
+      }
+      else
+      {
+        // Ignore...
+        ignored ++;
+      }
+    }
+
+    sfDelete(isf);
   }
 
-  // All done, import the last string, if any...
-  import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
-
-  fclose(fp);
-
+  // Finish up...
   printf(SFSTR("stringsutil: %d added, %d ignored, %d modified.\n"), added, ignored, modified);
 
   if (added || modified)
