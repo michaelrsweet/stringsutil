@@ -10,7 +10,6 @@
 #ifndef STRINGS_FILE_H
 #  define STRINGS_FILE_H
 #  include <stdbool.h>
-#  include <cups/array.h>
 #  ifdef __cplusplus
 extern "C" {
 #  endif // __cplusplus

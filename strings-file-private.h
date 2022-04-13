@@ -23,6 +23,7 @@
 #    include <unistd.h>
 #    include <fcntl.h>
 #  endif // _WIN32
+#  include <cups/array.h>
 #  include "strings-file.h"
 #  ifdef __cplusplus
 extern "C" {

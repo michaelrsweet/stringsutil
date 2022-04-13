@@ -1,0 +1,145 @@
+.\"
+.\" stringsutil man page for StringsUtil.
+.\"
+.\"     https://github.com/michaelrsweet/stringsutil
+.\"
+.\" Copyright © 2022 by Michael R Sweet.
+.\"
+.\" Licensed under Apache License v2.0.  See the file "LICENSE" for more
+.\" information.
+.\"
+.TH stringsutil 1 "StringsUtil 1.0" "2022-04-13" "Michael R Sweet"
+.SH NAME
+stringsutil \- manipulate .strings files for localization
+.SH SYNOPSIS
+.B stringsutil
+.B \-\-help
+.br
+
+.B stringsutil
+.B \-\-version
+.br
+
+.B stringsutil
+.B \-f
+.I SOURCE.strings
+.B export
+.I DESTINATION.{c,cc,cpp,cxx,h,po}
+.br
+
+.B stringsutil
+[
+.B \-a
+]
+.B \-f
+.I DESTINATION.strings
+.B import
+.I SOURCE.{po,strings}
+.br
+
+.B stringsutil
+[
+.B \-c
+]
+.B \-f
+.I DESTINATION.strings
+.B merge
+.I SOURCE.strings
+.br
+
+.B stringsutil
+.B \-f
+.I BASE.strings
+.B report
+.I LOCALIZED.strings
+.br
+
+.B stringsutil
+.B \-f
+.I DESTINATION.strings
+.B \-n
+.I FUNCTION-NAME
+.B scan
+.I SOURCE.{c,cc,cpp,cxx,h} ...
+
+.SH DESCRIPTION
+.B stringsutil
+manipulates Apple ".strings" localization files.
+The
+.B export
+sub-command writes localization strings as a C constant string or a GNU gettext ".po" file, the
+.B import
+sub-command imports localization strings from a GNU gettext ".po" file or another ".strings" file, the
+.B merge
+sub-command merges new localization string from another (base) ".strings" file, the
+.B report
+sub-command produces a localization status report, and the
+.B scan
+sub-command scans C/C++ source and header files for localizable strings.
+
+.SH OPTIONS
+The following options are recognized by
+.B stringsutil:
+.TP 5
+.B \-\-help
+Shows program help.
+.TP 5
+.B \-\-version
+Shows the program version.
+.TP 5
+.B \-a
+When importing messages, adds any new messages to the destination strings file.
+.TP 5
+.B \-c
+When merging messages, cleans (removes) any old messages from the destination strings file.
+.TP 5
+\fB\-f \fIFILENAME.strings\fR
+Specifies the destination or base ".strings" localization file for the sub-command.
+.TP 5
+\fB\-n \fIFUNCTION-NAME\fR
+When scanning source files, specifies the function or macro name that is used to identify localizable strings.
+The first argument must be a C string, optionally prefixed by a comment.
+
+.SH EXAMPLES
+Create a ".strings" file by scanning source files in the current directory:
+.nf
+
+    stringsutil -f base.strings scan *.[ch]
+.fi
+
+Create a ".po" file for external localizers to work with:
+.nf
+
+    stringsutil -f base.strings export es.po
+.fi
+
+Import the ".po" file when the localizer is done:
+.nf
+
+    cp base.strings es.strings
+    stringsutil -f es.strings import es.po
+.fi
+
+See how well the localizer did:
+.nf
+
+    stringsutil -f base.strings report es.strings
+.fi
+
+Update the ".strings" file for changes to the source files:
+.nf
+
+    stringsutil -f base.strings scan *.[ch]
+.fi
+
+Merge those changes into the "es.strings" file:
+.nf
+
+    stringsutil -f es.strings -c merge base.strings
+.fi
+
+.SH SEE ALSO
+.BR libsf (3)
+
+.SH COPYRIGHT
+Copyright \[co] 2022 by Michael R Sweet
