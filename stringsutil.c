@@ -23,7 +23,7 @@
 //
 
 static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
-static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename);
+static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename, bool addnew);
 static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename, bool clean);
 static int	report_strings(strings_file_t *sf, const char *filename);
 static int	scan_files(strings_file_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
@@ -46,7 +46,8 @@ main(int  argc,				// I - Number of command-line arguments
 		*command = NULL,	// Command
 		*funcname = NULL,	// Function name
 		*opt;			// Pointer to option
-  bool		clean = false;		// Clean old strings?
+  bool		addnew = false,		// Add new strings on import?
+		clean = false;		// Clean old strings?
   const char	*sfname;		// Strings filename
   strings_file_t *sf = NULL;		// Strings file
   struct stat	sfinfo;			// Strings file info
@@ -75,6 +76,10 @@ main(int  argc,				// I - Number of command-line arguments
       {
         switch (*opt)
         {
+          case 'a' : // -a
+              addnew = true;
+              break;
+
           case 'c' : // -c
               clean = true;
               break;
@@ -158,7 +163,7 @@ main(int  argc,				// I - Number of command-line arguments
   }
   else if (!strcmp(command, "import"))
   {
-    return (import_strings(sf, sfname, files[0]));
+    return (import_strings(sf, sfname, files[0], addnew));
   }
   else if (!strcmp(command, "merge"))
   {
@@ -274,13 +279,23 @@ export_strings(strings_file_t *sf,	// I - Strings
 static int				// O - Exit status
 import_strings(strings_file_t *sf,	// I - Strings
                const char     *sfname,	// I - Strings filename
-               const char     *filename)// I - Import filename
+               const char     *filename,// I - Import filename
+               bool           addnew)	// I - Add new strings?
 {
-  (void)sf;
-  (void)sfname;
-  (void)filename;
+  FILE		*fp;			// PO file
+  char		line[1024],		// Line buffer
+		*lineptr,		// Pointer into line
+		comment[1024],		// Comment string
+		msgid[1024],		// msgid buffer
+		msgstr[1024],		// msgstr buffer
+		*end,			// End of buffer
+		*ptr;			// Position in buffer
+  int		added,			// Number of added strings
+		ignored,		// Number of ignored strings
+		modified;		// Number of modified strings
 
-  return (1);
+
+  return (0);
 }
 
 
