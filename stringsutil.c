@@ -273,6 +273,71 @@ export_strings(strings_file_t *sf,	// I - Strings
 
 
 //
+// 'import_string()' - Import a single string.
+//
+
+static void
+import_string(strings_file_t *sf,	// I  - Strings
+              char           *msgid,	// I  - Key string
+              char           *msgstr,	// I  - Localized text
+              char           *comment,	// I  - Comment, if any
+              bool           addnew,	// I  - Add new strings?
+              int            *added,	// IO - Number of added strings
+              int            *ignored,	// IO - Number of ignored strings
+              int            *modified)	// IO - Number of modified strings
+{
+  _sf_pair_t	pair,			// New pair/search key
+		*match;			// Matching existing entry
+  bool		clear = false;		// Clear incoming strings?
+
+
+  if (*msgid && *msgstr)
+  {
+    // See if this is an existing string...
+    pair.key = msgid;
+
+    if ((match = (_sf_pair_t *)cupsArrayFind(sf->pairs, &pair)) != NULL)
+    {
+      // Found a match...
+      if (strcmp(match->text, msgstr))
+      {
+	// Modify the localization...
+	free(match->text);
+	match->text = strdup(msgstr);
+	(*modified) ++;
+	clear = true;
+      }
+    }
+    else if (addnew)
+    {
+      // Add new string...
+      pair.text    = msgstr;
+      pair.comment = comment;
+
+      fprintf(stderr, "import_string: Adding '%s'='%s' /* %s */\n", msgid, msgstr, comment);
+      cupsArrayAdd(sf->pairs, &pair);
+      (*added) ++;
+      clear = true;
+    }
+    else
+    {
+      // Ignore string...
+      (*ignored) ++;
+      clear = true;
+    }
+  }
+
+  if (clear)
+  {
+    // Clear the incoming string...
+    *msgid   = '\0';
+    *msgstr  = '\0';
+    *comment = '\0';
+  }
+}
+
+
+//
 // 'import_strings()' - Import strings from a PO file.
 //
 
@@ -285,17 +350,162 @@ import_strings(strings_file_t *sf,	// I - Strings
   FILE		*fp;			// PO file
   char		line[1024],		// Line buffer
 		*lineptr,		// Pointer into line
-		comment[1024],		// Comment string
-		msgid[1024],		// msgid buffer
-		msgstr[1024],		// msgstr buffer
-		*end,			// End of buffer
-		*ptr;			// Position in buffer
-  int		added,			// Number of added strings
-		ignored,		// Number of ignored strings
-		modified;		// Number of modified strings
+		comment[1024] = "",	// Comment string
+		msgid[1024] = "",	// msgid buffer
+		msgstr[1024] = "",	// msgstr buffer
+		*end = NULL,		// End of buffer
+		*ptr = NULL;		// Position in buffer
+  int		linenum = 0,		// Current line number
+		added = 0,		// Number of added strings
+		ignored = 0,		// Number of ignored strings
+		modified = 0;		// Number of modified strings
 
 
-  return (0);
+  // Open the PO file...
+  if ((fp = fopen(filename, "r")) == NULL)
+  {
+    fprintf(stderr, SFSTR("stringsutil: Unable to open PO file '%s': %s\n"), filename, strerror(errno));
+    return (1);
+  }
+
+  // Read lines until the end...
+  while (fgets(line, sizeof(line), fp))
+  {
+    linenum ++;
+
+    lineptr = line;
+
+    if (*lineptr == '#')
+    {
+      // Comment...
+      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+
+      // Skip whitespace
+      lineptr ++;
+      while (*lineptr && isspace(*lineptr & 255))
+        lineptr ++;
+
+      // Append comment...
+      ptr = comment + strlen(comment);
+      end = comment + sizeof(comment) - 1;
+
+      if (ptr > comment && ptr < end)
+        *ptr++ = ' ';			// Add initial space if this isn't the first comment line
+
+      while (*lineptr && *lineptr != '\n' && ptr < end)
+        *ptr++ = *lineptr++;
+
+      *ptr = '\0';
+      ptr  = end = NULL;
+      continue;
+    }
+    else if (!strncmp(line, "msgid ", 6))
+    {
+      // Start of message ID...
+      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+
+      lineptr += 6;
+      while (*lineptr && isspace(*lineptr & 255))
+        lineptr ++;
+
+      ptr = msgid;
+      end = msgid + sizeof(msgid) - 1;
+    }
+    else if (!strncmp(line, "msgstr ", 7))
+    {
+      // Start of message string...
+      lineptr += 7;
+      while (*lineptr && isspace(*lineptr & 255))
+        lineptr ++;
+
+      ptr = msgstr;
+      end = msgstr + sizeof(msgstr) - 1;
+    }
+    else if (*lineptr == '\n')
+    {
+      // Blank line
+      import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+      ptr = end = NULL;
+      comment[0] = '\0';
+      continue;
+    }
+
+    if (*lineptr != '\"' || !ptr)
+    {
+      // Something unexpected...
+      fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+      fclose(fp);
+      return (1);
+    }
+
+    // Append string...
+    lineptr ++;
+    while (*lineptr && *lineptr != '\"')
+    {
+      if (*lineptr == '\\')
+      {
+        // Add escaped character...
+        int	ch;			// Escaped character
+
+        lineptr ++;
+        if (*lineptr == '\\' || *lineptr == '\"' || *lineptr == '\'')
+        {
+          // Simple escape...
+          ch = *lineptr;
+        }
+        else if (*lineptr == 'n')
+        {
+          // Newline
+          ch = '\n';
+        }
+        else if (*lineptr == 'r')
+        {
+          // Carriage return
+          ch = '\r';
+        }
+        else if (*lineptr == 't')
+        {
+          // Horizontal tab
+          ch = '\t';
+        }
+        else if (*lineptr >= '0' && *lineptr <= '3' && lineptr[1] >= '0' && lineptr[1] <= '7' && lineptr[2] >= '0' && lineptr[2] <= '7')
+        {
+          // Octal escape
+          ch = ((*lineptr - '0') << 6) | ((lineptr[1] - '0') << 3) | (lineptr[2] - '0');
+        }
+        else
+        {
+	  fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+	  fclose(fp);
+	  return (1);
+        }
+
+        if (ptr < end)
+          *ptr++ = (char)ch;
+      }
+      else if (ptr < end)
+      {
+        // Add literal character...
+        *ptr++ = *lineptr;
+      }
+
+      lineptr ++;
+    }
+
+    *ptr = '\0';
+  }
+
+  // All done, import the last string, if any...
+  import_string(sf, msgid, msgstr, comment, addnew, &added, &ignored, &modified);
+
+  fclose(fp);
+
+  printf(SFSTR("stringsutil: %d added, %d ignored, %d modified.\n"), added, ignored, modified);
+
+  if (added || modified)
+    return (write_strings(sf, sfname) ? 0 : 1);
+  else
+    return (0);
 }
 
 
