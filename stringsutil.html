@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<title>StringsUtil vERSION) Manual</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<meta name="generator" content="codedoc v3.7">
+<meta name="author" content="Michael R Sweet">
+<meta name="language" content="en-US">
+<meta name="copyright" content="Copyright © 2022 by Michael R Sweet">
+<meta name="version" content="1.0">
+<style type="text/css"><!--
+body {
+  background: white;
+  color: black;
+  font-family: sans-serif;
+  font-size: 12pt;
+}
+a {
+  color: black;
+}
+a:link, a:visited {
+  color: #00f;
+}
+a:link:hover, a:visited:hover, a:active {
+  color: #c0c;
+}
+body, p, h1, h2, h3, h4, h5, h6 {
+  font-family: sans-serif;
+  line-height: 1.4;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  page-break-inside: avoid;
+}
+h1 {
+  font-size: 250%;
+  margin: 0;
+}
+h2 {
+  font-size: 250%;
+  margin-top: 1.5em;
+}
+h3 {
+  font-size: 200%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h4 {
+  font-size: 150%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h5 {
+  font-size: 125%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h6 {
+  font-size: 110%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+img.title {
+  width: 256px;
+}
+div.header h1, div.header p {
+  text-align: center;
+}
+div.contents, div.body, div.footer {
+  page-break-before: always;
+}
+.class, .enumeration, .function, .struct, .typedef, .union {
+  border-bottom: solid 2px gray;
+}
+.description {
+  margin-top: 0.5em;
+}
+.function {
+  margin-bottom: 0;
+}
+blockquote {
+  border: solid thin gray;
+  box-shadow: 3px 3px 5px rgba(127,127,127,0.25);
+  margin: 1em 0;
+  padding: 10px;
+  page-break-inside: avoid;
+}
+p code, li code, p.code, pre, ul.code li {
+  font-family: monospace;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+p.code, pre, ul.code li {
+  background: rgba(127,127,127,0.25);
+  border: thin dotted gray;
+  padding: 10px;
+  page-break-inside: avoid;
+}
+pre {
+  white-space: pre-wrap;
+}
+a:link, a:visited {
+  text-decoration: none;
+}
+span.info {
+  background: black;
+  border: solid thin black;
+  color: white;
+  font-size: 80%;
+  font-style: italic;
+  font-weight: bold;
+  white-space: nowrap;
+}
+h1 span.info, h2 span.info, h3 span.info, h4 span.info {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  float: right;
+  padding: 3px 6px;
+}
+ul.code, ul.contents, ul.subcontents {
+  list-style-type: none;
+  margin: 0;
+  padding-left: 0;
+}
+ul.code li {
+  margin: 0;
+}
+ul.contents > li {
+  margin-top: 1em;
+}
+ul.contents li ul.code, ul.contents li ul.subcontents {
+  padding-left: 2em;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+td {
+  border: solid 1px gray;
+  padding: 5px 10px;
+  vertical-align: top;
+}
+td.left {
+  text-align: left;
+}
+td.center {
+  text-align: center;
+}
+td.right {
+  text-align: right;
+}
+th {
+  border-bottom: solid 2px gray;
+  padding: 1px 5px;
+  text-align: center;
+  vertical-align: bottom;
+}
+tr:nth-child(even) {
+  background: rgba(127,127,127,0.25);
+}
+table.list {
+  border-collapse: collapse;
+  width: 100%;
+}
+table.list th {
+  border-bottom: none;
+  border-right: 2px solid gray;
+  font-family: monospace;
+  font-weight: normal;
+  padding: 5px 10px 5px 2px;
+  text-align: right;
+  vertical-align: top;
+}
+table.list td {
+  border: none;
+  padding: 5px 2px 5px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+h2.title, h3.title {
+  border-bottom: solid 2px gray;
+}
+/* Syntax highlighting */
+span.comment {
+  color: darkgreen;
+}
+span.directive {
+  color: purple;
+}
+span.number {
+  color: brown;
+}
+span.reserved {
+  color: darkcyan;
+}
+span.string {
+  color: magenta;
+}
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: black;
+    color: #ccc;
+  }
+  a {
+    color: #ccc;
+  }
+  a:link, a:visited {
+    color: #66f;
+  }
+  a:link:hover, a:visited:hover, a:active {
+    color: #f06;
+  }
+}
+/* Show contents on left side in web browser */
+@media screen and (min-width: 800px) {
+  div.contents {
+    border-right: solid thin gray;
+    bottom: 0px;
+    box-shadow: 3px 3px 5px rgba(127,127,127,0.5);
+    font-size: 10pt;
+    left: 0px;
+    overflow: scroll;
+    padding: 1%;
+    position: fixed;
+    top: 0px;
+    width: 18%;
+  }
+  div.contents h2.title {
+    margin-top: 0px;
+  }
+  div.header, div.body, div.footer {
+    margin-left: 20%;
+    padding: 1% 2%;
+  }
+}
+/* Center title page content vertically */
+@media print {
+  div.header {
+    padding-top: 33%;
+  }
+}
+--></style>
+</head>
+<body>
+<div class="header">
+<p><img class="title" src="stringsutil-128.png"></p>
+<h1 class="title">StringsUtil vERSION) Manual</h1>
+<p>Michael R Sweet</p>
+<p>Copyright © 2022 by Michael R Sweet</p>
+</div>
+<div class="contents">
+<h2 class="title">Contents</h2>
+<ul class="contents">
+<li><a href="#introduction">Introduction</a><ul class="subcontents">
+<li><a href="#apple-.strings-files">Apple &quot;.strings&quot; Files</a></li>
+<li><a href="#the-stringsutil-tool">The stringsutil Tool</a></li>
+<li><a href="#the-libsf-library">The libsf Library</a></li>
+</ul></li>
+<li><a href="#FUNCTIONS">Functions</a><ul class="subcontents">
+<li><a href="#sfDelete">sfDelete</a></li>
+<li><a href="#sfFormatString">sfFormatString</a></li>
+<li><a href="#sfGetError">sfGetError</a></li>
+<li><a href="#sfGetString">sfGetString</a></li>
+<li><a href="#sfLoadFromFile">sfLoadFromFile</a></li>
+<li><a href="#sfLoadFromString">sfLoadFromString</a></li>
+<li><a href="#sfNew">sfNew</a></li>
+<li><a href="#sfPrintf">sfPrintf</a></li>
+<li><a href="#sfPuts">sfPuts</a></li>
+<li><a href="#sfRegisterDirectory">sfRegisterDirectory</a></li>
+<li><a href="#sfRegisterString">sfRegisterString</a></li>
+<li><a href="#sfSetLocale">sfSetLocale</a></li>
+<li><a href="#sf_compare_pairs">sf_compare_pairs</a></li>
+</ul></li>
+<li><a href="#TYPES">Data Types</a><ul class="subcontents">
+<li><a href="#strings_file_t">strings_file_t</a></li>
+</ul></li>
+</ul>
+</div>
+<div class="body">
+<h2 class="title" id="introduction">Introduction</h2>
+<p>StringsUtil provides a library for using Apple &quot;.strings&quot; localization files and a utility for managing those files. It is intended as a free, smaller, embeddable, and more flexible alternative to GNU gettext. Key features include:</p>
+<ul>
+<li><p>Support for localizing using both Apple &quot;.strings&quot; and GNU gettext &quot;.po&quot; files.</p>
+</li>
+<li><p>Simple C/C++ library with support for embedding localization data in an executable and/or loading localizations from external files.</p>
+</li>
+<li><p>Tools for exporting, importing, and merging localization files.</p>
+</li>
+<li><p>Tool for reporting on the quality of a localization.</p>
+</li>
+<li><p>Tool for scanning C/C++ source files for localization strings.</p>
+</li>
+<li><p>Tool for doing a first pass machine translation.</p>
+</li>
+</ul>
+<h3 class="title" id="apple-.strings-files">Apple &quot;.strings&quot; Files</h3>
+<p>Apple &quot;.strings&quot; files are localization files used on macOS and iOS, as well as for localizing Internet Printing Protocol (IPP) attributes and values. The format consists of lines containing key/text pairs:</p>
+<pre><code>&quot;key string&quot; = &quot;localized text value&quot;;
+</code></pre>
+<p>C-style comments can be included before a pair to provide information to a localizer:</p>
+<pre><code>/* A whitty comment for the localizer about this string */
+&quot;key string&quot; = &quot;localized text value&quot;;
+</code></pre>
+<p>Each &quot;.strings&quot; file represents a single language or locale.</p>
+<p>Most open source software uses the GNU gettext library which supports a different &quot;.po&quot; file format:</p>
+<pre><code># A whitty comment for the localizer about this string
+msgid &quot;key string&quot;
+msgstr &quot;localized text value&quot;
+</code></pre>
+<p>This format is &quot;compiled&quot; into binary &quot;.mo&quot; files that are typically stored in a system directory. Like &quot;.strings&quot; files, one &quot;.po&quot; file is used for every language or locale.</p>
+<p>StringUtils supports importing and exporting &quot;.po&quot; files, when needed, but uses the Apple &quot;.strings&quot; format exclusively both on disk and in memory.</p>
+<h3 class="title" id="the-stringsutil-tool">The <code>stringsutil</code> Tool</h3>
+<p>The <code>stringsutil</code> tool allows you to manage your &quot;.strings&quot; files.</p>
+<p>Create a &quot;.strings&quot; file by scanning source files in the current directory:</p>
+<pre><code>stringsutil -f base.strings scan *.[ch]
+</code></pre>
+<p>Create a &quot;.po&quot; file for external localizers to work with:</p>
+<pre><code>stringsutil -f base.strings export es.po
+</code></pre>
+<p>Import the &quot;.po&quot; file when the localizer is done:</p>
+<pre><code>cp base.strings es.strings
+stringsutil -f es.strings import es.po
+</code></pre>
+<p>See how well the localizer did:</p>
+<pre><code>stringsutil -f base.strings report es.strings
+</code></pre>
+<p>Update the &quot;.strings&quot; file for changes to the source files:</p>
+<pre><code>stringsutil -f base.strings scan *.[ch]
+</code></pre>
+<p>Merge those changes into the &quot;es.strings&quot; file:</p>
+<pre><code>stringsutil -f es.strings -c merge base.strings
+</code></pre>
+<h3 class="title" id="the-libsf-library">The <code>libsf</code> Library</h3>
+<h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
+<h3 class="function"><a id="sfDelete">sfDelete</a></h3>
+<p class="description">Free localization strings.</p>
+<p class="code">
+void sfDelete(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+</tbody></table>
+<h3 class="function"><a id="sfFormatString">sfFormatString</a></h3>
+<p class="description">Format a localized string.</p>
+<p class="code">
+const char *sfFormatString(<a href="#strings_file_t">strings_file_t</a> *sf, char *buffer, size_t bufsize, const char *key, ...);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+<tr><th>buffer</th>
+<td class="description">Output buffer</td></tr>
+<tr><th>bufsize</th>
+<td class="description">Size of output buffer</td></tr>
+<tr><th>key</th>
+<td class="description">Format/key string</td></tr>
+<tr><th>...</th>
+<td class="description">Additional arguments as needed</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Formatted localized string</p>
+<h3 class="function"><a id="sfGetError">sfGetError</a></h3>
+<p class="description">Get the last error message, if any.</p>
+<p class="code">
+const char *sfGetError(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Last error message or <code>NULL</code> for none</p>
+<h3 class="function"><a id="sfGetString">sfGetString</a></h3>
+<p class="description">Lookup a localized string.</p>
+<p class="code">
+const char *sfGetString(<a href="#strings_file_t">strings_file_t</a> *sf, const char *key);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+<tr><th>key</th>
+<td class="description">Key string</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Localized string</p>
+<h3 class="function"><a id="sfLoadFromFile">sfLoadFromFile</a></h3>
+<p class="description">Load strings from a file.</p>
+<p class="code">
+bool sfLoadFromFile(<a href="#strings_file_t">strings_file_t</a> *sf, const char *filename);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+<tr><th>filename</th>
+<td class="description">File to load</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description"><code>true</code> on success, <code>false</code> on failure</p>
+<h3 class="function"><a id="sfLoadFromString">sfLoadFromString</a></h3>
+<p class="description">Load strings from a constant string.</p>
+<p class="code">
+bool sfLoadFromString(<a href="#strings_file_t">strings_file_t</a> *sf, const char *data);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>sf</th>
+<td class="description">Localization strings</td></tr>
+<tr><th>data</th>
+<td class="description">Data to load</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description"><code>true</code> on success, <code>false</code> on failure</p>
+<h3 class="function"><a id="sfNew">sfNew</a></h3>
+<p class="description">Create a new (empty) set of localization strings.</p>
+<p class="code">
+<a href="#strings_file_t">strings_file_t</a> *sfNew(void);</p>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Localization strings</p>
+<h3 class="function"><a id="sfPrintf">sfPrintf</a></h3>
+<p class="description">Print a formatted localized message followed by a newline.</p>
+<p class="code">
+void sfPrintf(FILE *fp, const char *message, ...);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>fp</th>
+<td class="description">Output file</td></tr>
+<tr><th>message</th>
+<td class="description">Printf-style message</td></tr>
+<tr><th>...</th>
+<td class="description">Additional arguments as needed</td></tr>
+</tbody></table>
+<h3 class="function"><a id="sfPuts">sfPuts</a></h3>
+<p class="description">Print a formatted message followed by a newline.</p>
+<p class="code">
+void sfPuts(FILE *fp, const char *message);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>fp</th>
+<td class="description">Output file</td></tr>
+<tr><th>message</th>
+<td class="description">Message</td></tr>
+</tbody></table>
+<h3 class="function"><a id="sfRegisterDirectory">sfRegisterDirectory</a></h3>
+<p class="description">Register strings files in a directory.</p>
+<p class="code">
+void sfRegisterDirectory(const char *directory);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>directory</th>
+<td class="description">Directory of .strings files</td></tr>
+</tbody></table>
+<h3 class="function"><a id="sfRegisterString">sfRegisterString</a></h3>
+<p class="description">Register strings from a compiled-in string.</p>
+<p class="code">
+void sfRegisterString(const char *locale, const char *data);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>locale</th>
+<td class="description">Locale</td></tr>
+<tr><th>data</th>
+<td class="description">Strings data</td></tr>
+</tbody></table>
+<h3 class="function"><a id="sfSetLocale">sfSetLocale</a></h3>
+<p class="description">Set the locale.</p>
+<p class="code">
+void sfSetLocale(void);</p>
+<h3 class="function"><a id="sf_compare_pairs">sf_compare_pairs</a></h3>
+<p class="description">Compare the keys of two key/text pairs.</p>
+<p class="code">
+int sf_compare_pairs(_sf_pair_t *a, _sf_pair_t *b);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>a</th>
+<td class="description">First key/text pair</td></tr>
+<tr><th>b</th>
+<td class="description">Second key/text pair</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Result of comparison</p>
+<h2 class="title"><a id="TYPES">Data Types</a></h2>
+<h3 class="typedef"><a id="strings_file_t">strings_file_t</a></h3>
+<p class="description">Strings file</p>
+<p class="code">
+typedef struct _strings_file_s strings_file_t;
+</p>
+</div>
+</body>
+</html>

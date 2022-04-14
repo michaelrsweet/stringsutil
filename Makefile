@@ -21,6 +21,9 @@ ARFLAGS	=	crv
 CC	=	gcc
 CFLAGS	=	$(OPTIM) $(CPPFLAGS) -Wall
 CPPFLAGS =	'-DVERSION="$(VERSION)"' `cups-config --cflags`
+DOCFLAGS =	--author "Michael R Sweet" \
+		--copyright "Copyright (c) 2022 by Michael R Sweet" \
+		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
 LIBS	=	`cups-config --libs`
 OBJS	=	strings-file.o stringsutil.o
@@ -217,6 +220,15 @@ update:		stringsutil
 update2:	stringsutil
 	./stringsutil -f es.strings export es_strings.h
 	./stringsutil -f fr.strings export fr_strings.h
+
+
+# Make documentation
+doc:
+	echo Generating stringsutil.html...
+	codedoc $(DOCFLAGS) --title "StringsUtil v$VERSION) Manual" --coverimage stringsutil-128.png --body stringsutil.md stringsutil.xml strings-file.[ch] >stringsutil.html
+	echo Generating libsf.3...
+	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 --body stringsutil.md stringsutil.xml >libsf.3
+	rm -f stringsutil.xml
 
 
 $(OBJS):	strings-file.h strings-file-private.h Makefile
