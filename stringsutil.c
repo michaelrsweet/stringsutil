@@ -15,7 +15,7 @@
 //   stringsutil report -f FILENAME.strings FILENAME-LL.strings
 //
 
-#include "strings-file-private.h"
+#include "sf-private.h"
 #include "es_strings.h"
 #include "fr_strings.h"
 
@@ -25,16 +25,16 @@
 //
 
 static bool	compare_formats(const char *s1, const char *s2);
-static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
-static void	import_string(strings_file_t *sf, char *msgid, char *msgstr, char           *comment, bool addnew, int *added, int *ignored, int *modified);
-static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename, bool addnew);
+static int	export_strings(sf_t *sf, const char *sfname, const char *filename);
+static void	import_string(sf_t *sf, char *msgid, char *msgstr, char *comment, bool addnew, int *added, int *ignored, int *modified);
+static int	import_strings(sf_t *sf, const char *sfname, const char *filename, bool addnew);
 static bool	matching_formats(const char *key, const char *text);
-static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename, bool clean);
-static int	report_strings(strings_file_t *sf, const char *filename);
-static int	scan_files(strings_file_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
+static int	merge_strings(sf_t *sf, const char *sfname, const char *filename, bool clean);
+static int	report_strings(sf_t *sf, const char *filename);
+static int	scan_files(sf_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
 static int	usage(FILE *fp, int status);
 static void	write_string(FILE *fp, const char *s, bool code);
-static bool	write_strings(strings_file_t *sf, const char *sfname);
+static bool	write_strings(sf_t *sf, const char *sfname);
 
 
 //
@@ -54,7 +54,7 @@ main(int  argc,				// I - Number of command-line arguments
   bool		addnew = false,		// Add new strings on import?
 		clean = false;		// Clean old strings?
   const char	*sfname = NULL;		// Strings filename
-  strings_file_t *sf = NULL;		// Strings file
+  sf_t		*sf = NULL;		// Strings file
   struct stat	sfinfo;			// Strings file info
 
 
@@ -233,9 +233,9 @@ compare_formats(const char *s1,		// I - First string (key)
 //
 
 static int				// O - Exit status
-export_strings(strings_file_t *sf,	// I - Strings
-	       const char     *sfname,	// I - Strings filename
-               const char     *filename)// I - Export filename
+export_strings(sf_t       *sf,		// I - Strings
+	       const char *sfname,	// I - Strings filename
+               const char *filename)	// I - Export filename
 {
   const char	*ext;			// Filename extension
   bool		code;			// Writing C code?
@@ -316,14 +316,14 @@ export_strings(strings_file_t *sf,	// I - Strings
 //
 
 static void
-import_string(strings_file_t *sf,	// I  - Strings
-              char           *msgid,	// I  - Key string
-              char           *msgstr,	// I  - Localized text
-              char           *comment,	// I  - Comment, if any
-              bool           addnew,	// I  - Add new strings?
-              int            *added,	// IO - Number of added strings
-              int            *ignored,	// IO - Number of ignored strings
-              int            *modified)	// IO - Number of modified strings
+import_string(sf_t *sf,			// I  - Strings
+              char *msgid,		// I  - Key string
+              char *msgstr,		// I  - Localized text
+              char *comment,		// I  - Comment, if any
+              bool addnew,		// I  - Add new strings?
+              int  *added,		// IO - Number of added strings
+              int  *ignored,		// IO - Number of ignored strings
+              int  *modified)		// IO - Number of modified strings
 {
   _sf_pair_t	*match;			// Matching existing entry
   bool		clear = false;		// Clear incoming strings?
@@ -374,10 +374,10 @@ import_string(strings_file_t *sf,	// I  - Strings
 //
 
 static int				// O - Exit status
-import_strings(strings_file_t *sf,	// I - Strings
-               const char     *sfname,	// I - Strings filename
-               const char     *filename,// I - Import filename
-               bool           addnew)	// I - Add new strings?
+import_strings(sf_t       *sf,		// I - Strings
+               const char *sfname,	// I - Strings filename
+               const char *filename,	// I - Import filename
+               bool       addnew)	// I - Add new strings?
 {
   const char	*ext;			// Filename extension...
   int		linenum = 0,		// Current line number
@@ -546,10 +546,10 @@ import_strings(strings_file_t *sf,	// I - Strings
   else
   {
     // Import a .strings file...
-    strings_file_t	*isf;		// Import strings
-    _sf_pair_t		*pair,		// Existing pair
-			*ipair;		// Imported pair
-    size_t		count;		// Number of pairs
+    sf_t	*isf;			// Import strings
+    _sf_pair_t	*pair,			// Existing pair
+		*ipair;			// Imported pair
+    size_t	count;			// Number of pairs
 
     isf = sfNew();
     if (!sfLoadFromFile(isf, filename))
@@ -696,17 +696,17 @@ matching_formats(const char *key,	// I - Key string
 //
 
 static int				// O - Exit status
-merge_strings(strings_file_t *sf,	// I - Strings
-              const char     *sfname,	// I - Strings filename
-              const char     *filename,	// I - Merge filename
-              bool           clean)	// I - Clean old strings?
+merge_strings(sf_t       *sf,		// I - Strings
+              const char *sfname,	// I - Strings filename
+              const char *filename,	// I - Merge filename
+              bool       clean)		// I - Clean old strings?
 {
-  strings_file_t	*msf;		// Strings file to merge
-  _sf_pair_t		*pair,		// Current pair
-			*mpair;		// Merge pair
-  size_t		count;		// Remaining pairs
-  int			added = 0,	// Number of added strings
-			removed = 0;	// Number of removed strings
+  sf_t		*msf;			// Strings file to merge
+  _sf_pair_t	*pair,			// Current pair
+		*mpair;			// Merge pair
+  size_t	count;			// Remaining pairs
+  int		added = 0,		// Number of added strings
+		removed = 0;		// Number of removed strings
 
 
   // Open the merge file...
@@ -765,20 +765,19 @@ merge_strings(strings_file_t *sf,	// I - Strings
 //
 
 static int				// O - Exit status
-report_strings(strings_file_t *sf,	// I - Strings
-               const char     *filename)// I - Comparison filename
+report_strings(sf_t       *sf,		// I - Strings
+               const char *filename)	// I - Comparison filename
 {
-  strings_file_t	*rsf;		// Strings file to report
-  _sf_pair_t		*pair,		// Current pair
-			*rpair;		// Report pair
-  size_t		count;		// Number of pairs
-  int			total,		// Total messages
-			errors = 0,	// Number of errors
-			translated = 0,	// Translated messages
-			missing = 0,	// Missing messages
-			old = 0,	// Old messages
-			untranslated = 0;
-					// Messages not translated
+  sf_t		*rsf;			// Strings file to report
+  _sf_pair_t	*pair,			// Current pair
+		*rpair;			// Report pair
+  size_t	count;			// Number of pairs
+  int		total,			// Total messages
+		errors = 0,		// Number of errors
+		translated = 0,		// Translated messages
+		missing = 0,		// Missing messages
+		old = 0,		// Old messages
+		untranslated = 0;	// Messages not translated
 
 
   // Open the report file...
@@ -841,11 +840,11 @@ report_strings(strings_file_t *sf,	// I - Strings
 //
 
 static int				// O - Exit status
-scan_files(strings_file_t *sf,		// I - Strings
-           const char     *sfname,	// I - Strings filename
-           const char     *funcname,	// I - Localization function name
-           int            num_files,	// I - Number of files
-           const char     *files[])	// I - Files
+scan_files(sf_t       *sf,		// I - Strings
+           const char *sfname,		// I - Strings filename
+           const char *funcname,	// I - Localization function name
+           int        num_files,	// I - Number of files
+           const char *files[])		// I - Files
 {
   size_t	fnlen;			// Length of function name
   int		i,			// Looping var
@@ -1078,8 +1077,8 @@ write_string(FILE       *fp,		// I - Output file
 //
 
 static bool				// O - `true` on success, `false` on failure
-write_strings(strings_file_t *sf,	// I - Strings
-              const char     *sfname)	// I - Strings filename
+write_strings(sf_t       *sf,		// I - Strings
+              const char *sfname)	// I - Strings filename
 {
   FILE		*fp;			// File
   _sf_pair_t	*pair;			// Current pair

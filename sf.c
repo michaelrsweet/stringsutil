@@ -7,7 +7,7 @@
 // information.
 //
 
-#include "strings-file-private.h"
+#include "sf-private.h"
 #include <stdarg.h>
 #include <locale.h>
 
@@ -16,7 +16,7 @@
 // Local globals...
 //
 
-static strings_file_t	*sf_default = NULL;
+static sf_t		*sf_default = NULL;
 					// Default localization
 static const char	*sf_locale = NULL;
 					// Default locale
@@ -35,10 +35,10 @@ static void	sf_free_pair(_sf_pair_t *pair);
 //
 
 bool					// O - `true` on success, `false` on error
-_sfAdd(strings_file_t *sf,		// I - Strings
-       const char     *key,		// I - Key
-       const char     *text,		// I - Text
-       const char     *comment)		// I - Comment, if any
+_sfAdd(sf_t       *sf,			// I - Strings
+       const char *key,			// I - Key
+       const char *text,		// I - Text
+       const char *comment)		// I - Comment, if any
 {
   _sf_pair_t	*pair;			// New pair
 
@@ -84,7 +84,7 @@ _sfAdd(strings_file_t *sf,		// I - Strings
 //
 
 void
-sfDelete(strings_file_t	*sf)		// I - Localization strings
+sfDelete(sf_t *sf)		// I - Localization strings
 {
   _sf_pair_t	*pair;			// Current pair
   size_t	count;			// Number of pairs
@@ -110,8 +110,8 @@ sfDelete(strings_file_t	*sf)		// I - Localization strings
 //
 
 _sf_pair_t *				// O - Matching pair or `NULL`
-_sfFind(strings_file_t *sf,		// I - Strings
-        const char     *key)		// I - Key
+_sfFind(sf_t       *sf,			// I - Strings
+        const char *key)		// I - Key
 {
   _sf_pair_t	pair,			// Search key
 		*match;			// Matching pair
@@ -147,10 +147,10 @@ _sfFind(strings_file_t *sf,		// I - Strings
 //
 
 const char *				// O - Formatted localized string
-sfFormatString(strings_file_t *sf,	// I - Localization strings
-               char           *buffer,	// I - Output buffer
-               size_t         bufsize,	// I - Size of output buffer
-               const char     *key,	// I - Format/key string
+sfFormatString(sf_t       *sf,		// I - Localization strings
+               char       *buffer,	// I - Output buffer
+               size_t     bufsize,	// I - Size of output buffer
+               const char *key,		// I - Format/key string
                ...)			// I - Additional arguments as needed
 {
   va_list	ap;			// Argument pointer
@@ -178,7 +178,7 @@ sfFormatString(strings_file_t *sf,	// I - Localization strings
 //
 
 const char *				// O - Last error message or `NULL` for none
-sfGetError(strings_file_t *sf)		// I - Localization strings
+sfGetError(sf_t *sf)			// I - Localization strings
 {
   if (!sf || !sf->error[0])
     return (NULL);
@@ -192,18 +192,18 @@ sfGetError(strings_file_t *sf)		// I - Localization strings
 //
 
 const char *				// O - Localized string
-sfGetString(strings_file_t *sf,		// I - Localization strings
-            const char     *key)	// I - Key string
+sfGetString(sf_t       *sf,		// I - Localization strings
+            const char *key)		// I - Key string
 {
   _sf_pair_t	*match;			// Matching pair, if any
 
 
   // Range check input...
-  if (!sf)
+  if (!key || (!sf && !sf_default))
     return (key);
 
   // Look up the key...
-  match = _sfFind(sf, key);
+  match = _sfFind(sf ? sf : sf_default, key);
 
   // Return a string to use...
   return (match ? match->text : key);
@@ -215,8 +215,8 @@ sfGetString(strings_file_t *sf,		// I - Localization strings
 //
 
 bool					// O - `true` on success, `false` on failure
-sfLoadFromFile(strings_file_t *sf,	// I - Localization strings
-               const char     *filename)// I - File to load
+sfLoadFromFile(sf_t       *sf,		// I - Localization strings
+               const char *filename)	// I - File to load
 {
   bool		ret;			// Return value
   int		fd;			// File descriptor
@@ -290,8 +290,8 @@ sfLoadFromFile(strings_file_t *sf,	// I - Localization strings
 //
 
 bool					// O - `true` on success, `false` on failure
-sfLoadFromString(strings_file_t *sf,	// I - Localization strings
-                 const char     *data)	// I - Data to load
+sfLoadFromString(sf_t       *sf,	// I - Localization strings
+                 const char *data)	// I - Data to load
 {
   const char	*dataptr;		// Pointer into string data
   char		key[1024],		// Key string
@@ -535,10 +535,10 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 // 'sfNew()' - Create a new (empty) set of localization strings.
 //
 
-strings_file_t *			// O - Localization strings
+sf_t *					// O - Localization strings
 sfNew(void)
 {
-  strings_file_t *sf = (strings_file_t *)calloc(1, sizeof(strings_file_t));
+  sf_t *sf = (sf_t *)calloc(1, sizeof(sf_t));
 					// Localization strings
 
 
@@ -625,8 +625,8 @@ sfRegisterString(const char *locale,	// I - Locale
 //
 
 void
-_sfRemove(strings_file_t *sf,		// I - Localization strings
-          size_t         n)		// I - Pair index
+_sfRemove(sf_t   *sf,			// I - Localization strings
+          size_t n)			// I - Pair index
 {
   // Free memory and then squeeze array as needed...
   _sf_rwlock_wrlock(sf->rwlock);
@@ -647,8 +647,8 @@ _sfRemove(strings_file_t *sf,		// I - Localization strings
 //
 
 void
-_sfSetError(strings_file_t *sf,		// I - Localization strings
-            const char     *message,	// I - Printf-style error string
+_sfSetError(sf_t       *sf,		// I - Localization strings
+            const char *message,	// I - Printf-style error string
             ...)			// I - Additional arguments as needed
 {
   va_list	ap;			// Pointer to arguments

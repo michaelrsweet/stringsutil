@@ -255,7 +255,7 @@ span.string {
 <li><a href="#introduction">Introduction</a><ul class="subcontents">
 <li><a href="#apple-.strings-files">Apple &quot;.strings&quot; Files</a></li>
 <li><a href="#the-stringsutil-tool">The stringsutil Tool</a></li>
-<li><a href="#the-libsf-library">The libsf Library</a></li>
+<li><a href="#using-the-libsf-library">Using the libsf Library</a></li>
 </ul></li>
 <li><a href="#FUNCTIONS">Functions</a><ul class="subcontents">
 <li><a href="#sfDelete">sfDelete</a></li>
@@ -272,7 +272,7 @@ span.string {
 <li><a href="#sfSetLocale">sfSetLocale</a></li>
 </ul></li>
 <li><a href="#TYPES">Data Types</a><ul class="subcontents">
-<li><a href="#strings_file_t">strings_file_t</a></li>
+<li><a href="#sf_t">sf_t</a></li>
 </ul></li>
 </ul>
 </div>
@@ -310,32 +310,41 @@ msgstr &quot;localized text value&quot;
 <p>This format is &quot;compiled&quot; into binary &quot;.mo&quot; files that are typically stored in a system directory. Like &quot;.strings&quot; files, one &quot;.po&quot; file is used for every language or locale.</p>
 <p>StringUtils supports importing and exporting &quot;.po&quot; files, when needed, but uses the Apple &quot;.strings&quot; format exclusively both on disk and in memory.</p>
 <h3 class="title" id="the-stringsutil-tool">The <code>stringsutil</code> Tool</h3>
-<p>The <code>stringsutil</code> tool allows you to manage your &quot;.strings&quot; files.</p>
-<p>Create a &quot;.strings&quot; file by scanning source files in the current directory:</p>
+<p>The <code>stringsutil</code> tool allows you to manage your &quot;.strings&quot; files. Create a &quot;.strings&quot; file by scanning source files in the current directory with the &quot;scan&quot; sub-command:</p>
 <pre><code>stringsutil -f base.strings scan *.[ch]
 </code></pre>
-<p>Create a &quot;.po&quot; file for external localizers to work with:</p>
+<p>Create a &quot;.po&quot; file for external localizers to work with using the &quot;export&quot; sub-command:</p>
 <pre><code>stringsutil -f base.strings export es.po
 </code></pre>
-<p>Import the &quot;.po&quot; file when the localizer is done:</p>
+<p>When the localizer is done, use the &quot;import&quot; sub-command to import the strings from the &quot;.po&quot; file:</p>
 <pre><code>cp base.strings es.strings
 stringsutil -f es.strings import es.po
 </code></pre>
-<p>See how well the localizer did:</p>
+<p>Run the &quot;report&quot; sub-command to see how well the localizer did:</p>
 <pre><code>stringsutil -f base.strings report es.strings
 </code></pre>
-<p>Update the &quot;.strings&quot; file for changes to the source files:</p>
+<p>When you have made source changes that affect the localization strings, use the &quot;scan&quot; sub-command again to update the base strings:</p>
 <pre><code>stringsutil -f base.strings scan *.[ch]
 </code></pre>
-<p>Merge those changes into the &quot;es.strings&quot; file:</p>
+<p>Then add those changes to the &quot;es.strings&quot; file with the &quot;merge&quot; sub-command:</p>
 <pre><code>stringsutil -f es.strings -c merge base.strings
 </code></pre>
-<h3 class="title" id="the-libsf-library">The <code>libsf</code> Library</h3>
+<p>You also use the &quot;export&quot; command to produce a C header file containing a strings file that can be embedded in a program:</p>
+<pre><code>stringsutil -f es.strings export es_strings.h
+</code></pre>
+<h3 class="title" id="using-the-libsf-library">Using the <code>libsf</code> Library</h3>
+<p>The <code>libsf</code> library has a single header file:</p>
+<pre><code class="language-c"><span class="directive">#include &lt;sf.h&gt;</span>
+</code></pre>
+<p>Use the <code>pkg-config</code> command to get the proper compiler and linker options:</p>
+<pre><code>CFLAGS = `pkgconfig --cflags libsf`
+LIBS = `pkgconfig --libs libsf`
+</code></pre>
 <h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
 <h3 class="function"><a id="sfDelete">sfDelete</a></h3>
 <p class="description">Free localization strings.</p>
 <p class="code">
-void sfDelete(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
+void sfDelete(<a href="#sf_t">sf_t</a> *sf);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -344,7 +353,7 @@ void sfDelete(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
 <h3 class="function"><a id="sfFormatString">sfFormatString</a></h3>
 <p class="description">Format a localized string.</p>
 <p class="code">
-const char *sfFormatString(<a href="#strings_file_t">strings_file_t</a> *sf, char *buffer, size_t bufsize, const char *key, ...);</p>
+const char *sfFormatString(<a href="#sf_t">sf_t</a> *sf, char *buffer, size_t bufsize, const char *key, ...);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -363,7 +372,7 @@ const char *sfFormatString(<a href="#strings_file_t">strings_file_t</a> *sf, cha
 <h3 class="function"><a id="sfGetError">sfGetError</a></h3>
 <p class="description">Get the last error message, if any.</p>
 <p class="code">
-const char *sfGetError(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
+const char *sfGetError(<a href="#sf_t">sf_t</a> *sf);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -374,7 +383,7 @@ const char *sfGetError(<a href="#strings_file_t">strings_file_t</a> *sf);</p>
 <h3 class="function"><a id="sfGetString">sfGetString</a></h3>
 <p class="description">Lookup a localized string.</p>
 <p class="code">
-const char *sfGetString(<a href="#strings_file_t">strings_file_t</a> *sf, const char *key);</p>
+const char *sfGetString(<a href="#sf_t">sf_t</a> *sf, const char *key);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -387,7 +396,7 @@ const char *sfGetString(<a href="#strings_file_t">strings_file_t</a> *sf, const 
 <h3 class="function"><a id="sfLoadFromFile">sfLoadFromFile</a></h3>
 <p class="description">Load strings from a file.</p>
 <p class="code">
-bool sfLoadFromFile(<a href="#strings_file_t">strings_file_t</a> *sf, const char *filename);</p>
+bool sfLoadFromFile(<a href="#sf_t">sf_t</a> *sf, const char *filename);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -400,7 +409,7 @@ bool sfLoadFromFile(<a href="#strings_file_t">strings_file_t</a> *sf, const char
 <h3 class="function"><a id="sfLoadFromString">sfLoadFromString</a></h3>
 <p class="description">Load strings from a constant string.</p>
 <p class="code">
-bool sfLoadFromString(<a href="#strings_file_t">strings_file_t</a> *sf, const char *data);</p>
+bool sfLoadFromString(<a href="#sf_t">sf_t</a> *sf, const char *data);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
@@ -413,7 +422,7 @@ bool sfLoadFromString(<a href="#strings_file_t">strings_file_t</a> *sf, const ch
 <h3 class="function"><a id="sfNew">sfNew</a></h3>
 <p class="description">Create a new (empty) set of localization strings.</p>
 <p class="code">
-<a href="#strings_file_t">strings_file_t</a> *sfNew(void);</p>
+<a href="#sf_t">sf_t</a> *sfNew(void);</p>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Localization strings</p>
 <h3 class="function"><a id="sfPrintf">sfPrintf</a></h3>
@@ -465,10 +474,10 @@ void sfRegisterString(const char *locale, const char *data);</p>
 <p class="code">
 void sfSetLocale(void);</p>
 <h2 class="title"><a id="TYPES">Data Types</a></h2>
-<h3 class="typedef"><a id="strings_file_t">strings_file_t</a></h3>
+<h3 class="typedef"><a id="sf_t">sf_t</a></h3>
 <p class="description">Strings file</p>
 <p class="code">
-typedef struct _strings_file_s strings_file_t;
+typedef struct _sf_s sf_t;
 </p>
 </div>
 </body>

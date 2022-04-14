@@ -50,34 +50,54 @@ the Apple ".strings" format exclusively both on disk and in memory.
 The `stringsutil` Tool
 ----------------------
 
-The `stringsutil` tool allows you to manage your ".strings" files.
-
-Create a ".strings" file by scanning source files in the current directory:
+The `stringsutil` tool allows you to manage your ".strings" files.  Create a
+".strings" file by scanning source files in the current directory with the
+"scan" sub-command:
 
     stringsutil -f base.strings scan *.[ch]
 
-Create a ".po" file for external localizers to work with:
+Create a ".po" file for external localizers to work with using the "export"
+sub-command:
 
     stringsutil -f base.strings export es.po
 
-Import the ".po" file when the localizer is done:
+When the localizer is done, use the "import" sub-command to import the strings
+from the ".po" file:
 
     cp base.strings es.strings
     stringsutil -f es.strings import es.po
 
-See how well the localizer did:
+Run the "report" sub-command to see how well the localizer did:
 
     stringsutil -f base.strings report es.strings
 
-Update the ".strings" file for changes to the source files:
+When you have made source changes that affect the localization strings, use the
+"scan" sub-command again to update the base strings:
 
     stringsutil -f base.strings scan *.[ch]
 
-Merge those changes into the "es.strings" file:
+Then add those changes to the "es.strings" file with the "merge" sub-command:
 
     stringsutil -f es.strings -c merge base.strings
 
+You also use the "export" command to produce a C header file containing a
+strings file that can be embedded in a program:
 
-The `libsf` Library
--------------------
+    stringsutil -f es.strings export es_strings.h
 
+
+Using the `libsf` Library
+-------------------------
+
+The `libsf` library has a single header file:
+
+```c
+#include <sf.h>
+```
+
+Use the `pkg-config` command to get the proper compiler and linker options:
+
+```
+CFLAGS = `pkgconfig --cflags libsf`
+LIBS = `pkgconfig --libs libsf`
+```

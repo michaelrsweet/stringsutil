@@ -26,7 +26,7 @@ DOCFLAGS =	--author "Michael R Sweet" \
 		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
 LIBS	=	`cups-config --libs`
-OBJS	=	strings-file.o stringsutil.o
+OBJS	=	sf.o stringsutil.o
 OPTIM	=	-Os -g
 RANLIB	=	ranlib
 TARGETS	=	libsf.a stringsutil
@@ -56,7 +56,7 @@ install:	all
 	cp stringsutil $(bindir)
 	echo "Installing header to $(includedir)..."
 	mkdir -p $(includedir)
-	cp strings-file.h $(includedir)
+	cp sf.h $(includedir)
 	echo "Installing library to $(libdir)..."
 	mkdir -p $(libdir)
 	cp libsf.a $(libdir)
@@ -64,6 +64,8 @@ install:	all
 	echo "Installing man pages to $(mandir)..."
 	mkdir -p $(mandir)/man1
 	cp stringsutil.1 $(mandir)/man1
+	mkdir -p $(mandir)/man3
+	cp libsf.3 $(mandir)/man3
 
 
 sanitizer:
@@ -90,9 +92,9 @@ stringsutil:	stringsutil.o libsf.a
 	echo "Linking $@..."
 	$(CC) $(LDFLAGS) -o stringsutil stringsutil.o libsf.a $(LIBS)
 
-libsf.a:	strings-file.o
+libsf.a:	sf.o
 	echo "Archiving $@..."
-	$(AR) $(ARFLAGS) $@ strings-file.o
+	$(AR) $(ARFLAGS) $@ sf.o
 	$(RANLIB) $@
 
 test:		all
@@ -225,11 +227,11 @@ update2:	stringsutil
 # Make documentation
 doc:
 	echo Generating stringsutil.html...
-	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml strings-file.[ch] >stringsutil.html
+	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml sf.[ch] >stringsutil.html
 	echo Generating libsf.3...
 	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 stringsutil.xml >libsf.3
 	rm -f stringsutil.xml
 
 
-$(OBJS):	strings-file.h strings-file-private.h Makefile
+$(OBJS):	sf.h sf-private.h Makefile
 stringsutil.o:	es_strings.h fr_strings.h

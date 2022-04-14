@@ -7,8 +7,8 @@
 // information.
 //
 
-#ifndef STRINGS_FILE_PRIVATE_H
-#  define STRINGS_FILE_PRIVATE_H
+#ifndef SF_PRIVATE_H
+#  define SF_PRIVATE_H
 #  include <stdio.h>
 #  include <stdlib.h>
 #  include <string.h>
@@ -37,7 +37,7 @@ typedef pthread_rwlock_t _sf_rwlock_t;
 #    define _sf_rwlock_wrlock(rw)	pthread_rwlock_wrlock(&rw)
 #    define _sf_rwlock_unlock(rw)	pthread_rwlock_unlock(&rw)
 #  endif // _WIN32
-#  include "strings-file.h"
+#  include "sf.h"
 #  ifdef __cplusplus
 extern "C" {
 #  endif // __cplusplus
@@ -61,7 +61,7 @@ typedef struct _sf_pair_s		// String pair
 		*comment;		// Associated comment, if any
 } _sf_pair_t;
 
-struct _strings_file_s			// Strings file
+struct _sf_s				// Strings file
 {
   _sf_rwlock_t	rwlock;			// Reader/writer lock
   bool		need_sort;		// Do we need to sort?
@@ -76,13 +76,13 @@ struct _strings_file_s			// Strings file
 // Functions...
 //
 
-extern bool		_sfAdd(strings_file_t *sf, const char *key, const char *text, const char *comment);
-extern _sf_pair_t	*_sfFind(strings_file_t *sf, const char *key);
-extern void		_sfRemove(strings_file_t *sf, size_t n);
-extern void		_sfSetError(strings_file_t *sf, const char *message, ...) _SF_FORMAT(2,3);
+extern bool		_sfAdd(sf_t *sf, const char *key, const char *text, const char *comment);
+extern _sf_pair_t	*_sfFind(sf_t *sf, const char *key);
+extern void		_sfRemove(sf_t *sf, size_t n);
+extern void		_sfSetError(sf_t *sf, const char *message, ...) _SF_FORMAT(2,3);
 
 
 #  ifdef __cplusplus
 }
 #  endif // __cplusplus
-#endif // !STRINGS_FILE_PRIVATE_H
+#endif // !SF_PRIVATE_H
