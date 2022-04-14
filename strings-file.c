@@ -681,9 +681,9 @@ sfSetLocale(void)
 // 'sf_compare_pairs()' - Compare the keys of two key/text pairs.
 //
 
-int					// O - Result of comparison
+static int				// O - Result of comparison
 sf_compare_pairs(_sf_pair_t *a,		// I - First key/text pair
-	       _sf_pair_t *b)		// I - Second key/text pair
+	         _sf_pair_t *b)		// I - Second key/text pair
 {
   return (strcmp(a->key, b->key));
 }

@@ -1,104 +1,6 @@
 .TH libsf 3 "stringsutil - libsf functions" "2022-04-14" "stringsutil - libsf functions"
 .SH NAME
 libsf \- stringsutil - libsf functions
-.SH Introduction
-.PP
-StringsUtil provides a library for using Apple ".strings" localization files and a utility for managing those files. It is intended as a free, smaller, embeddable, and more flexible alternative to GNU gettext. Key features include:
-.IP \(bu 5
-.PP
-Support for localizing using both Apple ".strings" and GNU gettext ".po" files.
-
-.IP \(bu 5
-.PP
-Simple C/C++ library with support for embedding localization data in an executable and/or loading localizations from external files.
-
-.IP \(bu 5
-.PP
-Tools for exporting, importing, and merging localization files.
-
-.IP \(bu 5
-.PP
-Tool for reporting on the quality of a localization.
-
-.IP \(bu 5
-.PP
-Tool for scanning C/C++ source files for localization strings.
-
-.IP \(bu 5
-.PP
-Tool for doing a first pass machine translation.
-
-
-.SS Apple ".strings" Files
-.PP
-Apple ".strings" files are localization files used on macOS and iOS, as well as for localizing Internet Printing Protocol (IPP) attributes and values. The format consists of lines containing key/text pairs:
-.nf
-
-    "key string" = "localized text value";
-.fi
-.PP
-C\-style comments can be included before a pair to provide information to a localizer:
-.nf
-
-    /* A whitty comment for the localizer about this string */
-    "key string" = "localized text value";
-.fi
-.PP
-Each ".strings" file represents a single language or locale.
-.PP
-Most open source software uses the GNU gettext library which supports a different ".po" file format:
-.nf
-
-    # A whitty comment for the localizer about this string
-    msgid "key string"
-    msgstr "localized text value"
-.fi
-.PP
-This format is "compiled" into binary ".mo" files that are typically stored in a system directory. Like ".strings" files, one ".po" file is used for every language or locale.
-.PP
-StringUtils supports importing and exporting ".po" files, when needed, but uses the Apple ".strings" format exclusively both on disk and in memory.
-.SS The stringsutil Tool
-.PP
-The stringsutil tool allows you to manage your ".strings" files.
-.PP
-Create a ".strings" file by scanning source files in the current directory:
-.nf
-
-    stringsutil \-f base.strings scan *.[ch]
-.fi
-.PP
-Create a ".po" file for external localizers to work with:
-.nf
-
-    stringsutil \-f base.strings export es.po
-.fi
-.PP
-Import the ".po" file when the localizer is done:
-.nf
-
-    cp base.strings es.strings
-    stringsutil \-f es.strings import es.po
-.fi
-.PP
-See how well the localizer did:
-.nf
-
-    stringsutil \-f base.strings report es.strings
-.fi
-.PP
-Update the ".strings" file for changes to the source files:
-.nf
-
-    stringsutil \-f base.strings scan *.[ch]
-.fi
-.PP
-Merge those changes into the "es.strings" file:
-.nf
-
-    stringsutil \-f es.strings \-c merge base.strings
-.fi
-.SS The libsf Library
-
 .SH FUNCTIONS
 .SS sfDelete
 Free localization strings.
@@ -202,15 +104,6 @@ Set the locale.
 .PP
 .nf
 void sfSetLocale (void);
-.fi
-.SS sf_compare_pairs
-Compare the keys of two key/text pairs.
-.PP
-.nf
-int  sf_compare_pairs (
-    _sf_pair_t *a,
-    _sf_pair_t *b
-);
 .fi
 .SH TYPES
 .SS strings_file_t

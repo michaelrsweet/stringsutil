@@ -225,9 +225,9 @@ update2:	stringsutil
 # Make documentation
 doc:
 	echo Generating stringsutil.html...
-	codedoc $(DOCFLAGS) --title "StringsUtil v$VERSION) Manual" --coverimage stringsutil-128.png --body stringsutil.md stringsutil.xml strings-file.[ch] >stringsutil.html
+	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml strings-file.[ch] >stringsutil.html
 	echo Generating libsf.3...
-	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 --body stringsutil.md stringsutil.xml >libsf.3
+	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 stringsutil.xml >libsf.3
 	rm -f stringsutil.xml
 
 
