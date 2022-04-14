@@ -16,6 +16,8 @@
 //
 
 #include "strings-file-private.h"
+#include "es_strings.h"
+#include "fr_strings.h"
 
 
 //
@@ -54,7 +56,10 @@ main(int  argc,				// I - Number of command-line arguments
   struct stat	sfinfo;			// Strings file info
 
 
+  // Initialize localizations...
   sfSetLocale();
+  sfRegisterString("es", es_strings);
+  sfRegisterString("fr", fr_strings);
 
   // Parse command-line...
   for (i = 1; i < argc; i ++)
@@ -557,7 +562,7 @@ import_strings(strings_file_t *sf,	// I - Strings
   }
 
   // Finish up...
-  printf(SFSTR("stringsutil: %d added, %d ignored, %d modified."), added, ignored, modified);
+  sfPrintf(stdout, SFSTR("stringsutil: %d added, %d ignored, %d modified."), added, ignored, modified);
 
   if (added || modified)
     return (write_strings(sf, sfname) ? 0 : 1);
@@ -627,7 +632,7 @@ merge_strings(strings_file_t *sf,	// I - Strings
 
   if (added || removed)
   {
-    printf(SFSTR("stringsutil: Added %d string(s), removed %d string(s)."), added, removed);
+    sfPrintf(stdout, SFSTR("stringsutil: Added %d string(s), removed %d string(s)."), added, removed);
     return (write_strings(sf, sfname) ? 0 : 1);
   }
 
@@ -693,12 +698,12 @@ report_strings(strings_file_t *sf,	// I - Strings
   total = translated + missing + untranslated;
 
   if (missing || old)
-    printf(SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s)."), missing, old);
+    sfPrintf(stdout, SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s)."), missing, old);
 
   if (total == 0)
-    puts(SFSTR("stringsutil: No strings."));
+    sfPuts(stdout, SFSTR("stringsutil: No strings."));
   else
-    printf(SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
+    sfPrintf(stdout, SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
 
   return (untranslated > (total / 2) ? 1 : 0);
 }
@@ -851,16 +856,16 @@ scan_files(strings_file_t *sf,		// I - Strings
   // Write out any changes as needed...
   if (changes == 0)
   {
-    puts(SFSTR("stringsutil: No new strings."));
+    sfPuts(stdout, SFSTR("stringsutil: No new strings."));
     return (0);
   }
   else if (changes == 1)
   {
-    puts(SFSTR("stringsutil: 1 new string."));
+    sfPuts(stdout, SFSTR("stringsutil: 1 new string."));
   }
   else
   {
-    printf(SFSTR("stringsutil: %d new strings."), changes);
+    sfPrintf(stdout, SFSTR("stringsutil: %d new strings."), changes);
   }
 
   return (write_strings(sf, sfname) ? 0 : 1);
@@ -876,6 +881,7 @@ usage(FILE *fp,				// I - Where to send usage
       int  status)			// I - Exit status
 {
   sfPuts(fp, SFSTR("Usage: stringsutil [OPTIONS] COMMAND FILENAME(S)"));
+  puts("");
   sfPuts(fp, SFSTR("Options:"));
   sfPuts(fp, SFSTR("  -a                   Add new strings (import)."));
   sfPuts(fp, SFSTR("  -c                   Remove old strings (merge)."));
@@ -883,6 +889,7 @@ usage(FILE *fp,				// I - Where to send usage
   sfPuts(fp, SFSTR("  -n NAME              Specify function/macro name for localization."));
   sfPuts(fp, SFSTR("  --help               Show program help."));
   sfPuts(fp, SFSTR("  --version            Show program version."));
+  puts("");
   sfPuts(fp, SFSTR("Commands:"));
   sfPuts(fp, SFSTR("  export               Export strings to GNU gettext .po or C source file."));
   sfPuts(fp, SFSTR("  import               Import strings from GNU gettext .po or .strings file."));

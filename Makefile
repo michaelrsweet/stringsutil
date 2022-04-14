@@ -179,6 +179,20 @@ test:		all
 		cat test.log; \
 		exit 1; \
 	fi
+	echo "Localization test (es): \c"
+	if (LANG=es_ES.UTF-8 ./stringsutil --help | grep -q NOMBRE); then \
+		echo "PASS"; \
+	else \
+		echo "FAIL"; \
+		LANG=es_ES.UTF-8 ./stringsutil --help; \
+	fi
+	echo "Localization test (fr): \c"
+	if (LANG=fr_CA.UTF-8 ./stringsutil --help | grep -q NOM); then \
+		echo "PASS"; \
+	else \
+		echo "FAIL"; \
+		LANG=fr_CA.UTF-8 ./stringsutil --help; \
+	fi
 	rm -f test.c test.log test.o test.po test.strings
 	echo "All tests passed."
 

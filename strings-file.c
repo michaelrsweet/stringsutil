@@ -672,7 +672,7 @@ sfSetLocale(void)
 
   sf_default = sfNew();
 
-  if ((sf_locale = setlocale(LC_ALL, "")) == NULL || !strcmp(sf_locale, "C"))
+  if ((sf_locale = setlocale(LC_ALL, "")) == NULL || !strcmp(sf_locale, "C") || !strncmp(sf_locale, "C/", 2))
     sf_locale = "en";
 }
 
