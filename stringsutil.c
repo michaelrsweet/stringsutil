@@ -54,6 +54,8 @@ main(int  argc,				// I - Number of command-line arguments
   struct stat	sfinfo;			// Strings file info
 
 
+  sfSetLocale();
+
   // Parse command-line...
   for (i = 1; i < argc; i ++)
   {
@@ -68,7 +70,7 @@ main(int  argc,				// I - Number of command-line arguments
     }
     else if (!strncmp(argv[i], "--", 2))
     {
-      fprintf(stderr, SFSTR("stringsutil: Unknown option '%s'.\n"), argv[i]);
+      sfPrintf(stderr, SFSTR("stringsutil: Unknown option '%s'."), argv[i]);
       return (usage(stderr, 1));
     }
     else if (argv[i][0] == '-')
@@ -89,7 +91,7 @@ main(int  argc,				// I - Number of command-line arguments
               i ++;
               if (i >= argc)
               {
-                fputs(SFSTR("stringsutil: Expected strings filename after '-f'.\n"), stderr);
+                sfPuts(stderr, SFSTR("stringsutil: Expected strings filename after '-f'."));
                 return (usage(stderr, 1));
               }
 
@@ -98,7 +100,7 @@ main(int  argc,				// I - Number of command-line arguments
 
               if (!sfLoadFromFile(sf, argv[i]) && errno != ENOENT)
               {
-                fprintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s\n"), argv[i], sfGetError(sf));
+                sfPrintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s"), argv[i], sfGetError(sf));
                 return (1);
               }
               break;
@@ -107,14 +109,14 @@ main(int  argc,				// I - Number of command-line arguments
               i ++;
               if (i >= argc)
               {
-                fputs(SFSTR("stringsutil: Expected function name after '-n'.\n"), stderr);
+                sfPuts(stderr, SFSTR("stringsutil: Expected function name after '-n'."));
                 return (usage(stderr, 1));
               }
               funcname = argv[i];
               break;
 
 	  default :
-	      fprintf(stderr, SFSTR("stringsutil: Unknown option '-%c'.\n"), *opt);
+	      sfPrintf(stderr, SFSTR("stringsutil: Unknown option '-%c'."), *opt);
 	      return (usage(stderr, 1));
         }
       }
@@ -129,7 +131,7 @@ main(int  argc,				// I - Number of command-line arguments
     }
     else
     {
-      fputs(SFSTR("stringsutil: Too many files.\n"), stderr);
+      sfPuts(stderr, SFSTR("stringsutil: Too many files."));
       return (1);
     }
   }
@@ -137,13 +139,13 @@ main(int  argc,				// I - Number of command-line arguments
   // Do the command...
   if (!sf)
   {
-    fputs(SFSTR("stringsutil: Expected strings file.\n"), stderr);
+    sfPuts(stderr, SFSTR("stringsutil: Expected strings file."));
     return (usage(stderr, 1));
   }
 
   if (!command)
   {
-    fputs(SFSTR("stringsutil: Expected command name.\n"), stderr);
+    sfPuts(stderr, SFSTR("stringsutil: Expected command name."));
     return (usage(stderr, 1));
   }
   else if (!strcmp(command, "scan"))
@@ -154,18 +156,18 @@ main(int  argc,				// I - Number of command-line arguments
     }
     else
     {
-      fputs(SFSTR("stringsutil: Expected '-n FUNCTION-NAME' option.\n"), stderr);
+      sfPuts(stderr, SFSTR("stringsutil: Expected '-n FUNCTION-NAME' option."));
       return (usage(stderr, 1));
     }
   }
   else if (num_files == 0)
   {
-    fprintf(stderr, SFSTR("stringsutil: Expected %s filename.\n"), command);
+    sfPrintf(stderr, SFSTR("stringsutil: Expected %s filename."), command);
     return (usage(stderr, 1));
   }
   else if (num_files > 1)
   {
-    fputs(SFSTR("stringsutil: Too many files.\n"), stderr);
+    sfPuts(stderr, SFSTR("stringsutil: Too many files."));
     return (1);
   }
   else if (!strcmp(command, "import"))
@@ -178,7 +180,7 @@ main(int  argc,				// I - Number of command-line arguments
   }
   else if (stat(sfname, &sfinfo))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s\n"), sfname, sfGetError(sf));
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s"), sfname, sfGetError(sf));
     return (1);
   }
   else if (!strcmp(command, "export"))
@@ -212,7 +214,7 @@ export_strings(strings_file_t *sf,	// I - Strings
 
   if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".h") && strcmp(ext, ".c") && strcmp(ext, ".cc") && strcmp(ext, ".cpp") && strcmp(ext, ".cxx")))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unknown export format for '%s'.\n"), filename);
+    sfPrintf(stderr, SFSTR("stringsutil: Unknown export format for '%s'."), filename);
     return (1);
   }
 
@@ -220,7 +222,7 @@ export_strings(strings_file_t *sf,	// I - Strings
 
   if ((fp = fopen(filename, "w")) == NULL)
   {
-    fprintf(stderr, SFSTR("stringsutil: Unable to export '%s': %s\n"), sfname, strerror(errno));
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to export '%s': %s"), sfname, strerror(errno));
     return (false);
   }
 
@@ -354,7 +356,7 @@ import_strings(strings_file_t *sf,	// I - Strings
 
   if ((ext = strrchr(filename, '.')) == NULL || (strcmp(ext, ".po") && strcmp(ext, ".strings")))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unknown import format for '%s'.\n"), filename);
+    sfPrintf(stderr, SFSTR("stringsutil: Unknown import format for '%s'."), filename);
     return (1);
   }
 
@@ -373,7 +375,7 @@ import_strings(strings_file_t *sf,	// I - Strings
     // Open the PO file...
     if ((fp = fopen(filename, "r")) == NULL)
     {
-      fprintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s\n"), filename, strerror(errno));
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s"), filename, strerror(errno));
       return (1);
     }
 
@@ -442,7 +444,7 @@ import_strings(strings_file_t *sf,	// I - Strings
       if (*lineptr != '\"' || !ptr)
       {
 	// Something unexpected...
-	fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+	sfPrintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'."), linenum, filename);
 	fclose(fp);
 	return (1);
       }
@@ -484,7 +486,7 @@ import_strings(strings_file_t *sf,	// I - Strings
 	  }
 	  else
 	  {
-	    fprintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'.\n"), linenum, filename);
+	    sfPrintf(stderr, SFSTR("stringsutil: Syntax error on line %d of '%s'."), linenum, filename);
 	    fclose(fp);
 	    return (1);
 	  }
@@ -520,7 +522,7 @@ import_strings(strings_file_t *sf,	// I - Strings
     isf = sfNew();
     if (!sfLoadFromFile(isf, filename))
     {
-      fprintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s\n"), filename, sfGetError(isf));
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s"), filename, sfGetError(isf));
       sfDelete(isf);
       return (1);
     }
@@ -555,7 +557,7 @@ import_strings(strings_file_t *sf,	// I - Strings
   }
 
   // Finish up...
-  printf(SFSTR("stringsutil: %d added, %d ignored, %d modified.\n"), added, ignored, modified);
+  printf(SFSTR("stringsutil: %d added, %d ignored, %d modified."), added, ignored, modified);
 
   if (added || modified)
     return (write_strings(sf, sfname) ? 0 : 1);
@@ -586,7 +588,7 @@ merge_strings(strings_file_t *sf,	// I - Strings
   msf = sfNew();
   if (!sfLoadFromFile(msf, filename))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unable to merge '%s': %s\n"), filename, sfGetError(msf));
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to merge '%s': %s"), filename, sfGetError(msf));
     sfDelete(msf);
     return (1);
   }
@@ -625,7 +627,7 @@ merge_strings(strings_file_t *sf,	// I - Strings
 
   if (added || removed)
   {
-    printf(SFSTR("stringsutil: Added %d string(s), removed %d string(s).\n"), added, removed);
+    printf(SFSTR("stringsutil: Added %d string(s), removed %d string(s)."), added, removed);
     return (write_strings(sf, sfname) ? 0 : 1);
   }
 
@@ -657,7 +659,7 @@ report_strings(strings_file_t *sf,	// I - Strings
   rsf = sfNew();
   if (!sfLoadFromFile(rsf, filename))
   {
-    fprintf(stderr, SFSTR("stringsutil: Unable to report on '%s': %s\n"), filename, sfGetError(rsf));
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to report on '%s': %s"), filename, sfGetError(rsf));
     sfDelete(rsf);
     return (1);
   }
@@ -691,12 +693,12 @@ report_strings(strings_file_t *sf,	// I - Strings
   total = translated + missing + untranslated;
 
   if (missing || old)
-    printf(SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s).\n"), missing, old);
+    printf(SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s)."), missing, old);
 
   if (total == 0)
     puts(SFSTR("stringsutil: No strings."));
   else
-    printf(SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated.\n"), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
+    printf(SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
 
   return (untranslated > (total / 2) ? 1 : 0);
 }
@@ -732,7 +734,7 @@ scan_files(strings_file_t *sf,		// I - Strings
   {
     if ((fp = fopen(files[i], "r")) == NULL)
     {
-      fprintf(stderr, SFSTR("stringsutil: Unable to open source file '%s': %s\n"), files[i], strerror(errno));
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to open source file '%s': %s"), files[i], strerror(errno));
       return (1);
     }
 
@@ -858,7 +860,7 @@ scan_files(strings_file_t *sf,		// I - Strings
   }
   else
   {
-    printf(SFSTR("stringsutil: %d new strings.\n"), changes);
+    printf(SFSTR("stringsutil: %d new strings."), changes);
   }
 
   return (write_strings(sf, sfname) ? 0 : 1);
@@ -873,20 +875,20 @@ static int				// O - Exit status
 usage(FILE *fp,				// I - Where to send usage
       int  status)			// I - Exit status
 {
-  fputs(SFSTR("Usage: stringsutil [OPTIONS] COMMAND FILENAME(S)\n"), fp);
-  fputs(SFSTR("Options:\n"), fp);
-  fputs(SFSTR("  -a                   Add new strings (import).\n"), fp);
-  fputs(SFSTR("  -c                   Remove old strings (merge).\n"), fp);
-  fputs(SFSTR("  -f FILENAME.strings  Specify strings file.\n"), fp);
-  fputs(SFSTR("  -n NAME              Specify function/macro name for localization.\n"), fp);
-  fputs(SFSTR("  --help               Show program help.\n"), fp);
-  fputs(SFSTR("  --version            Show program version.\n"), fp);
-  fputs(SFSTR("Commands:\n"), fp);
-  fputs(SFSTR("  export               Export strings to GNU gettext .po or C source file.\n"), fp);
-  fputs(SFSTR("  import               Import strings from GNU gettext .po or .strings file.\n"), fp);
-  fputs(SFSTR("  merge                Merge strings from another strings file.\n"), fp);
-  fputs(SFSTR("  report               Report untranslated strings in the specified strings file(s).\n"), fp);
-  fputs(SFSTR("  scan                 Scan C/C++ source files for strings.\n"), fp);
+  sfPuts(fp, SFSTR("Usage: stringsutil [OPTIONS] COMMAND FILENAME(S)"));
+  sfPuts(fp, SFSTR("Options:"));
+  sfPuts(fp, SFSTR("  -a                   Add new strings (import)."));
+  sfPuts(fp, SFSTR("  -c                   Remove old strings (merge)."));
+  sfPuts(fp, SFSTR("  -f FILENAME.strings  Specify strings file."));
+  sfPuts(fp, SFSTR("  -n NAME              Specify function/macro name for localization."));
+  sfPuts(fp, SFSTR("  --help               Show program help."));
+  sfPuts(fp, SFSTR("  --version            Show program version."));
+  sfPuts(fp, SFSTR("Commands:"));
+  sfPuts(fp, SFSTR("  export               Export strings to GNU gettext .po or C source file."));
+  sfPuts(fp, SFSTR("  import               Import strings from GNU gettext .po or .strings file."));
+  sfPuts(fp, SFSTR("  merge                Merge strings from another strings file."));
+  sfPuts(fp, SFSTR("  report               Report untranslated strings in the specified strings file(s)."));
+  sfPuts(fp, SFSTR("  scan                 Scan C/C++ source files for strings."));
 
   return (status);
 }
@@ -952,7 +954,7 @@ write_strings(strings_file_t *sf,	// I - Strings
 
   if ((fp = fopen(sfname, "w")) == NULL)
   {
-    fprintf(stderr, SFSTR(/*Unable to create .strings file*/"stringsutil: Unable to create '%s': %s\n"), sfname, strerror(errno));
+    sfPrintf(stderr, SFSTR(/*Unable to create .strings file*/"stringsutil: Unable to create '%s': %s\n"), sfname, strerror(errno));
     return (false);
   }
 

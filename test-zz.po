@@ -27,8 +27,8 @@ msgstr ""
 msgid "BOGUS"
 msgstr "Ayay ogusbay exttay ingstray."
 
-msgid "Commands:\n"
-msgstr "Ommandscay:\n"
+msgid "Commands:"
+msgstr "Ommandscay:"
 
-msgid "Options:\n"
-msgstr "Optionsyay:\n"
+msgid "Options:"
+msgstr "Optionsyay:"

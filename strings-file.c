@@ -550,7 +550,7 @@ sfNew(void)
 
 
 //
-// 'sfPrintf()' - Print a formatted localized message.
+// 'sfPrintf()' - Print a formatted localized message followed by a newline.
 //
 
 void
@@ -563,6 +563,7 @@ sfPrintf(FILE       *fp,		// I - Output file
 
   va_start(ap, message);
   vfprintf(fp, sfGetString(sf_default, message), ap);
+  putc('\n', fp);
   va_end(ap);
 }
 
