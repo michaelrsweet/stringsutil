@@ -2,6 +2,7 @@
 "  --version            Show program version." = "  --version            Mostrar versión del programa.";
 "  -a                   Add new strings (import)." = "  -a                   Añadir nuevas cuerdas (import).";
 "  -c                   Quitar viejas cuerdas (merge)." = "  -c                   Remove old strings (merge).";
+"  -c                   Remove old strings (merge)." = "  -c                   Remove old strings (merge).";
 "  -f FILENAME.strings  Specify strings file." = "  -f NOMBRE.strings    Especifique el archivo de cadenas.";
 "  -n NAME              Specify function/macro name for localization." = "  -n NOMBRE            Especifique el nombre de función/macro para la localización.";
 "  export               Export strings to GNU gettext .po or C source file." = "  export               Exportar cadenas a GNU gettext .po o archivo fuente C.";
@@ -28,6 +29,9 @@
 "stringsutil: No strings." = "stringsutil: Sin cuerdas.";
 "stringsutil: Syntax error on line %d of '%s'." = "stringsutil: Error sintaxis en línea %d de '%s'.";
 "stringsutil: Too many files." = "stringsutil: Demasiados archivos.";
+"stringsutil: Translated format string does not match '%s'." = "stringsutil: Translated format string does not match '%s'.";
+/* Unable to create .strings file */
+"stringsutil: Unable to create '%s': %s\n" = "stringsutil: Incapaz de crear '%s': %s\n";
 "stringsutil: Unable to export '%s': %s" = "stringsutil: Incapaz de exportar '%s': %s";
 "stringsutil: Unable to import '%s': %s" = "stringsutil: Incapaz de importar '%s': %s";
 "stringsutil: Unable to load '%s': %s" = "stringsutil: Incapaz de cargar '%s': %s";
@@ -38,5 +42,3 @@
 "stringsutil: Unknown import format for '%s'." = "stringsutil: Formato de importación desconocido '%s'.";
 "stringsutil: Unknown option '%s'." = "stringsutil: Opción desconocida '%s'.";
 "stringsutil: Unknown option '-%c'." = "stringsutil: Opción desconocida '-%c'.";
-/* Unable to create .strings file */
-"stringsutil: Unable to create '%s': %s\n" = "stringsutil: Incapaz de crear '%s': %s\n";

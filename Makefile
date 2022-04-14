@@ -96,7 +96,7 @@ test:		all
 	rm -f test.strings
 	echo "Scan test: \c"
 	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c) >test.log 2>&1
-	if test -f test.strings -a $$(wc -l <test.strings 2>/dev/null) = 42; then \
+	if test -f test.strings -a $$(wc -l <test.strings 2>/dev/null) = 43; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not scan the expected number of strings)"; \
@@ -105,7 +105,7 @@ test:		all
 	fi
 	echo "Export test (C code): \c"
 	./stringsutil -f test.strings export test.c >test.log 2>&1
-	if test -f test.c -a $$(wc -l <test.c 2>/dev/null) = 42; then \
+	if test -f test.c -a $$(wc -l <test.c 2>/dev/null) = 43; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not export the expected number of strings)"; \
@@ -122,14 +122,22 @@ test:		all
 	fi
 	echo "Export test (GNU gettext po): \c"
 	./stringsutil -f test.strings export test.po >test.log 2>&1
-	if test -f test.po -a $$(wc -l <test.po 2>/dev/null) = 124; then \
+	if test -f test.po -a $$(wc -l <test.po 2>/dev/null) = 127; then \
 		echo "PASS"; \
 	else \
 		echo "FAIL (Did not export the expected number of lines)"; \
 		cat test.log; \
 		exit 1; \
 	fi
-	echo "Report test: \c"
+	echo "Report test (test-yy.strings): \c"
+	if ./stringsutil -f test.strings report test-yy.strings >test.log 2>&1; then \
+		echo "FAIL"; \
+		cat test.log; \
+		exit 1; \
+	else \
+		echo "PASS"; \
+	fi
+	echo "Report test (test-zz.strings): \c"
 	if ./stringsutil -f test.strings report test-zz.strings >test.log 2>&1; then \
 		echo "PASS"; \
 	else \
@@ -139,7 +147,7 @@ test:		all
 	fi
 	echo "Import test (test-zz.po): \c"
 	if ./stringsutil -f test.strings import test-zz.po >test.log 2>&1; then \
-		if test $$(wc -l <test.strings 2>/dev/null) = 42; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 43; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not preserve strings)"; \
@@ -153,7 +161,7 @@ test:		all
 	fi
 	echo "Import test (test-zz.po -a): \c"
 	if ./stringsutil -f test.strings import -a test-zz.po >test.log 2>&1; then \
-		if test $$(wc -l <test.strings 2>/dev/null) = 44; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 45; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not add new strings)"; \
@@ -167,7 +175,7 @@ test:		all
 	fi
 	echo "Import test (test-zz.strings): \c"
 	if ./stringsutil -f test.strings import test-zz.strings >test.log 2>&1; then \
-		if test $$(wc -l <test.strings 2>/dev/null) = 44; then \
+		if test $$(wc -l <test.strings 2>/dev/null) = 45; then \
 			echo "PASS"; \
 		else \
 			echo "FAIL (did not preserve strings)"; \
@@ -197,4 +205,19 @@ test:		all
 	echo "All tests passed."
 
 
+# Update localizations
+update:		stringsutil
+	echo Updating strings files...
+	rm -f base.strings
+	./stringsutil -f base.strings -n SFSTR scan stringsutil.c
+	./stringsutil -f es.strings merge base.strings
+	./stringsutil -f fr.strings merge base.strings
+	rm -f base.strings
+
+update2:	stringsutil
+	./stringsutil -f es.strings export es_strings.h
+	./stringsutil -f fr.strings export fr_strings.h
+
+
 $(OBJS):	strings-file.h strings-file-private.h Makefile
+stringsutil.o:	es_strings.h fr_strings.h

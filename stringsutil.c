@@ -24,9 +24,11 @@
 // Local functions...
 //
 
+static bool	compare_formats(const char *s1, const char *s2);
 static int	export_strings(strings_file_t *sf, const char *sfname, const char *filename);
 static void	import_string(strings_file_t *sf, char *msgid, char *msgstr, char           *comment, bool addnew, int *added, int *ignored, int *modified);
 static int	import_strings(strings_file_t *sf, const char *sfname, const char *filename, bool addnew);
+static bool	matching_formats(const char *key, const char *text);
 static int	merge_strings(strings_file_t *sf, const char *sfname, const char *filename, bool clean);
 static int	report_strings(strings_file_t *sf, const char *filename);
 static int	scan_files(strings_file_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
@@ -198,6 +200,31 @@ main(int  argc,				// I - Number of command-line arguments
   }
 
   return (0);
+}
+
+
+//
+// 'compare_formats()' - Compare two format strings.
+//
+
+static bool				// O - `true` if equal, `false` otherwise
+compare_formats(const char *s1,		// I - First string (key)
+                const char *s2)		// I - Second string (localized text)
+{
+  // Compare the two formats - s1 and s2 point after the % and any positional parameters
+  while (*s1 && *s2)
+  {
+    if (*s1 != *s2)
+      return (false);
+
+    if (isalpha(*s1 & 255))
+      break;
+
+    s1 ++;
+    s2 ++;
+  }
+
+  return (true);
 }
 
 
@@ -572,6 +599,99 @@ import_strings(strings_file_t *sf,	// I - Strings
 
 
 //
+// 'matching_formats()' - Determine whether the key and localized text strings have matching formats.
+//
+
+static bool				// O - `true` if matching, `false` otherwise
+matching_formats(const char *key,	// I - Key string
+                 const char *text)	// I - Localized text
+{
+  int		i,			// Looping var
+		num_fmts = 0;		// Number of formats
+  const char	*keyfmts[100],		// Formats from key string
+		*textfmts[100],		// Formats from text string
+		*ptr;			// Pointer into string
+
+
+  // First collect the formats from the key string...
+  memset(keyfmts, 0, sizeof(keyfmts));
+  for (ptr = strchr(key, '%'), i = 0; ptr && i < 100; ptr = strchr(ptr + 1, '%'))
+  {
+    ptr ++;
+    if (*ptr == '%')
+    {
+      // Skip %%...
+      ptr ++;
+      continue;
+    }
+
+    if (isdigit(*ptr & 255) && ptr[1] == '$')
+    {
+      // 1-digit positional parameter
+      i   = *ptr - '1';
+      ptr += 2;
+    }
+    else if (isdigit(*ptr & 255) && isdigit(ptr[1] & 255) && ptr[2] == '$')
+    {
+      // 2-digit positional parameter
+      i = (*ptr - '0') * 10 + ptr[1] - '1';
+      ptr += 3;
+    }
+
+    keyfmts[i ++] = ptr;
+    if (i > num_fmts)
+      num_fmts = i;
+  }
+
+  if (ptr)
+    return (false);
+
+  // Then the formats for the text string...
+  memset(textfmts, 0, sizeof(textfmts));
+  for (ptr = strchr(text, '%'), i = 0; ptr && i < 100; ptr = strchr(ptr + 1, '%'))
+  {
+    ptr ++;
+    if (*ptr == '%')
+    {
+      // Skip %%...
+      ptr ++;
+      continue;
+    }
+
+    if (isdigit(*ptr & 255) && ptr[1] == '$')
+    {
+      // 1-digit positional parameter
+      i   = *ptr - '1';
+      ptr += 2;
+    }
+    else if (isdigit(*ptr & 255) && isdigit(ptr[1] & 255) && ptr[2] == '$')
+    {
+      // 2-digit positional parameter
+      i = (*ptr - '0') * 10 + ptr[1] - '1';
+      ptr += 3;
+    }
+
+    if (i < num_fmts)
+      textfmts[i ++] = ptr;
+    else
+      break;
+  }
+
+  if (ptr)
+    return (false);
+
+  // Then compare them all...
+  for (i = 0; i < num_fmts; i ++)
+  {
+    if (!keyfmts[i] || !textfmts[0] || !compare_formats(keyfmts[i], textfmts[i]))
+      return (false);
+  }
+
+  return (true);
+}
+
+
+//
 // 'merge_strings()' - Merge strings from another strings file.
 //
 
@@ -653,6 +773,7 @@ report_strings(strings_file_t *sf,	// I - Strings
 			*rpair;		// Report pair
   size_t		count;		// Number of pairs
   int			total,		// Total messages
+			errors = 0,	// Number of errors
 			translated = 0,	// Translated messages
 			missing = 0,	// Missing messages
 			old = 0,	// Old messages
@@ -676,6 +797,12 @@ report_strings(strings_file_t *sf,	// I - Strings
     {
       old ++;
       continue;
+    }
+
+    if (!matching_formats(rpair->key, rpair->text))
+    {
+      sfPrintf(stderr, SFSTR("stringsutil: Translated format string does not match '%s'."), rpair->key);
+      errors ++;
     }
 
     if (strcmp(rpair->text, pair->text))
@@ -705,7 +832,7 @@ report_strings(strings_file_t *sf,	// I - Strings
   else
     sfPrintf(stdout, SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
 
-  return (untranslated > (total / 2) ? 1 : 0);
+  return (untranslated > (total / 2) || errors > 0 ? 1 : 0);
 }
 
 

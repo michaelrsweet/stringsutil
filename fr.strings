@@ -10,6 +10,7 @@
 "  report               Report untranslated strings in the specified strings file(s)." = "  report               Signaler des chaînes non traduites dans le ou les fichiers de chaînes spécifiés.";
 "  scan                 Scan C/C++ source files for strings." = "  scan                 Scanner les fichiers sources C/C+ pour les chaînes.";
 "Commandes:" = "Commands:";
+"Commands:" = "Commands:";
 "Options:" = "Options:";
 "Usage: stringsutil [OPTIONS] COMMAND FILENAME(S)" = "Utilisation: stringsutil [OPTIONS] COMMANDE NOM(S)";
 "stringsutil: %d added, %d ignored, %d modified." = "stringsutil: %d ajouté, %d ignoré, %d modifié.";
@@ -28,6 +29,9 @@
 "stringsutil: No strings." = "stringsutil: Pas de chaînes.";
 "stringsutil: Syntax error on line %d of '%s'." = "stringsutil: Erreur de syntaxe sur la ligne %d de '%s'.";
 "stringsutil: Too many files." = "stringsutil: Trop de fichiers.";
+"stringsutil: Translated format string does not match '%s'." = "stringsutil: Translated format string does not match '%s'.";
+/* Unable to create .strings file */
+"stringsutil: Unable to create '%s': %s\n" = "stringsutil: Impossible à créer '%s': %s\n";
 "stringsutil: Unable to export '%s': %s" = "stringsutil: Impossible à exporter '%s': %s";
 "stringsutil: Unable to import '%s': %s" = "stringsutil: Incapable d ' importer '%s': %s";
 "stringsutil: Unable to load '%s': %s" = "stringsutil: Impossible à charger '%s': %s";
@@ -38,5 +42,3 @@
 "stringsutil: Unknown import format for '%s'." = "stringsutil: Format d ' importation inconnu '%s'.";
 "stringsutil: Unknown option '%s'." = "stringsutil: Option inconnue '%s'.";
 "stringsutil: Unknown option '-%c'." = "stringsutil: Option inconnue '-%c'.";
-/* Unable to create .strings file */
-"stringsutil: Unable to create '%s': %s\n" = "stringsutil: Impossible à créer '%s': %s\n";
