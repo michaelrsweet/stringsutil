@@ -19,7 +19,7 @@ embeddable, and more flexible alternative to GNU gettext.  Key features include:
 - Tools for exporting, importing, and merging localization files.
 - Tool for reporting on the quality of a localization.
 - Tool for scanning C/C++ source files for localization strings.
-- *FUTURE*: Tool for doing a first pass machine translation.
+- *Coming Soon*: Tool for doing a first pass machine translation.
 
 
 Requirements
