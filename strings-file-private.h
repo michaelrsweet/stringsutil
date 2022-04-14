@@ -19,9 +19,23 @@
 #    define _CRT_SECURE_NO_DEPRECATE
 #    define _CRT_SECURE_NO_WARNINGS
 #    include <io.h>
+#    include <process.h>
+typedef SRWLOCK _sf_rwlock_t;
+#    define _sf_rwlock_destroy(rw)
+#    define _sf_rwlock_init(rw) InitializeSRWLock(&rw)
+#    define _sf_rwlock_rdlock(rw) AcquireSRWLockShared(&rw)
+#    define _sf_rwlock_wrlock(rw) AcquireSRWLockExclusive(&rw)
+#    define _sf_rwlock_unlock(rw) (rw == (void *)1 ? ReleaseSRWLockExclusive(&rw) : ReleaseSRWLockShared(&rw))
 #  else
 #    include <unistd.h>
 #    include <fcntl.h>
+#    include <pthread.h>
+typedef pthread_rwlock_t _sf_rwlock_t;
+#    define _sf_rwlock_destroy(rw) pthread_rwlock_destroy(&rw)
+#    define _sf_rwlock_init(rw) pthread_rwlock_init(&rw, NULL)
+#    define _sf_rwlock_rdlock(rw) pthread_rwlock_rdlock(&rw)
+#    define _sf_rwlock_wrlock(rw) pthread_rwlock_wrlock(&rw)
+#    define _sf_rwlock_unlock(rw) pthread_rwlock_unlock(&rw)
 #  endif // _WIN32
 #  include "strings-file.h"
 #  ifdef __cplusplus
@@ -49,6 +63,7 @@ typedef struct _sf_pair_s		// String pair
 
 struct _strings_file_s			// Strings file
 {
+  _sf_rwlock_t	rwlock;			// Reader/writer lock
   bool		need_sort;		// Do we need to sort?
   size_t	num_pairs,		// Number of pairs
 		alloc_pairs;		// Allocated pairs

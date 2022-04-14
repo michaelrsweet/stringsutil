@@ -24,11 +24,14 @@ _sfAdd(strings_file_t *sf,		// I - Strings
   _sf_pair_t	*pair;			// New pair
 
 
+  _sf_rwlock_wrlock(sf->rwlock);
+
   if (sf->num_pairs >= sf->alloc_pairs)
   {
     if ((pair = realloc(sf->pairs, (sf->alloc_pairs + 32) * sizeof(_sf_pair_t))) == NULL)
     {
       _sfSetError(sf, "Unable to allocate memory for pair.");
+      _sf_rwlock_unlock(sf->rwlock);
       return (false);
     }
 
@@ -44,11 +47,14 @@ _sfAdd(strings_file_t *sf,		// I - Strings
   if (!pair->key || !pair->text || (!pair->comment && comment && *comment))
   {
     _sfSetError(sf, "Unable to copy strings.");
+    _sf_rwlock_unlock(sf->rwlock);
     return (false);
   }
 
   sf->num_pairs ++;
   sf->need_sort = sf->num_pairs > 1;
+
+  _sf_rwlock_unlock(sf->rwlock);
 
   return (true);
 }
@@ -70,6 +76,8 @@ sfDelete(strings_file_t	*sf)		// I - Localization strings
     return;
 
   // Free memory...
+  _sf_rwlock_destroy(sf->rwlock);
+
   for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
     _sfPairFree(pair);
 
@@ -86,20 +94,32 @@ _sf_pair_t *				// O - Matching pair or `NULL`
 _sfFind(strings_file_t *sf,		// I - Strings
         const char     *key)		// I - Key
 {
-  _sf_pair_t	pair;			// Search key
+  _sf_pair_t	pair,			// Search key
+		*match;			// Matching pair
 
 
   // Sort as needed...
   if (sf->need_sort)
   {
-    // TODO: Add mutex
-    qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+    _sf_rwlock_wrlock(sf->rwlock);
+
+    if (sf->need_sort)
+      qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+
     sf->need_sort = false;
+  }
+  else
+  {
+    _sf_rwlock_rdlock(sf->rwlock);
   }
 
   pair.key = (char *)key;
 
-  return ((_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare));
+  match = (_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+
+  _sf_rwlock_unlock(sf->rwlock);
+
+  return (match);
 }
 
 
@@ -499,7 +519,14 @@ sfLoadFromString(strings_file_t *sf,	// I - Localization strings
 strings_file_t *			// O - Localization strings
 sfNew(void)
 {
-  return ((strings_file_t *)calloc(1, sizeof(strings_file_t)));
+  strings_file_t *sf = (strings_file_t *)calloc(1, sizeof(strings_file_t));
+					// Localization strings
+
+
+  if (sf)
+    _sf_rwlock_init(sf->rwlock);
+
+  return (sf);
 }
 
 
@@ -537,12 +564,16 @@ _sfRemove(strings_file_t *sf,		// I - Localization strings
           size_t         n)		// I - Pair index
 {
   // Free memory and then squeeze array as needed...
+  _sf_rwlock_wrlock(sf->rwlock);
+
   _sfPairFree(sf->pairs + n);
 
   sf->num_pairs --;
 
   if (n < sf->num_pairs)
     memmove(sf->pairs + n, sf->pairs + n + 1, (sf->num_pairs - n) * sizeof(_sf_pair_t));
+
+  _sf_rwlock_unlock(sf->rwlock);
 }
 
 
