@@ -22,20 +22,20 @@
 #    include <process.h>
 typedef SRWLOCK _sf_rwlock_t;
 #    define _sf_rwlock_destroy(rw)
-#    define _sf_rwlock_init(rw) InitializeSRWLock(&rw)
-#    define _sf_rwlock_rdlock(rw) AcquireSRWLockShared(&rw)
-#    define _sf_rwlock_wrlock(rw) AcquireSRWLockExclusive(&rw)
-#    define _sf_rwlock_unlock(rw) (rw == (void *)1 ? ReleaseSRWLockExclusive(&rw) : ReleaseSRWLockShared(&rw))
+#    define _sf_rwlock_init(rw)		InitializeSRWLock(&rw)
+#    define _sf_rwlock_rdlock(rw)	AcquireSRWLockShared(&rw)
+#    define _sf_rwlock_wrlock(rw)	AcquireSRWLockExclusive(&rw)
+#    define _sf_rwlock_unlock(rw)	(rw == (void *)1 ? ReleaseSRWLockExclusive(&rw) : ReleaseSRWLockShared(&rw))
 #  else
 #    include <unistd.h>
 #    include <fcntl.h>
 #    include <pthread.h>
 typedef pthread_rwlock_t _sf_rwlock_t;
-#    define _sf_rwlock_destroy(rw) pthread_rwlock_destroy(&rw)
-#    define _sf_rwlock_init(rw) pthread_rwlock_init(&rw, NULL)
-#    define _sf_rwlock_rdlock(rw) pthread_rwlock_rdlock(&rw)
-#    define _sf_rwlock_wrlock(rw) pthread_rwlock_wrlock(&rw)
-#    define _sf_rwlock_unlock(rw) pthread_rwlock_unlock(&rw)
+#    define _sf_rwlock_destroy(rw)	pthread_rwlock_destroy(&rw)
+#    define _sf_rwlock_init(rw)		pthread_rwlock_init(&rw, NULL)
+#    define _sf_rwlock_rdlock(rw)	pthread_rwlock_rdlock(&rw)
+#    define _sf_rwlock_wrlock(rw)	pthread_rwlock_wrlock(&rw)
+#    define _sf_rwlock_unlock(rw)	pthread_rwlock_unlock(&rw)
 #  endif // _WIN32
 #  include "strings-file.h"
 #  ifdef __cplusplus
@@ -78,8 +78,6 @@ struct _strings_file_s			// Strings file
 
 extern bool		_sfAdd(strings_file_t *sf, const char *key, const char *text, const char *comment);
 extern _sf_pair_t	*_sfFind(strings_file_t *sf, const char *key);
-extern int		_sfPairCompare(_sf_pair_t *a, _sf_pair_t *b);
-extern void		_sfPairFree(_sf_pair_t *pair);
 extern void		_sfRemove(strings_file_t *sf, size_t n);
 extern void		_sfSetError(strings_file_t *sf, const char *message, ...) _SF_FORMAT(2,3);
 

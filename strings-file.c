@@ -9,6 +9,25 @@
 
 #include "strings-file-private.h"
 #include <stdarg.h>
+#include <locale.h>
+
+
+//
+// Local globals...
+//
+
+static strings_file_t	*sf_default = NULL;
+					// Default localization
+static const char	*sf_locale = NULL;
+					// Default locale
+
+
+//
+// Local functions...
+//
+
+static int	sf_compare_pairs(_sf_pair_t *a, _sf_pair_t *b);
+static void	sf_free_pair(_sf_pair_t *pair);
 
 
 //
@@ -79,7 +98,7 @@ sfDelete(strings_file_t	*sf)		// I - Localization strings
   _sf_rwlock_destroy(sf->rwlock);
 
   for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
-    _sfPairFree(pair);
+    sf_free_pair(pair);
 
   free(sf->pairs);
   free(sf);
@@ -104,7 +123,7 @@ _sfFind(strings_file_t *sf,		// I - Strings
     _sf_rwlock_wrlock(sf->rwlock);
 
     if (sf->need_sort)
-      qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+      qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs);
 
     sf->need_sort = false;
   }
@@ -115,7 +134,7 @@ _sfFind(strings_file_t *sf,		// I - Strings
 
   pair.key = (char *)key;
 
-  match = (_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))_sfPairCompare);
+  match = (_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs);
 
   _sf_rwlock_unlock(sf->rwlock);
 
@@ -531,27 +550,72 @@ sfNew(void)
 
 
 //
-// '_sfPairCompare()' - Compare the keys of two key/text pairs.
+// 'sfPrintf()' - Print a formatted localized message.
 //
 
-int					// O - Result of comparison
-_sfPairCompare(_sf_pair_t *a,		// I - First key/text pair
-	       _sf_pair_t *b)		// I - Second key/text pair
+void
+sfPrintf(FILE       *fp,		// I - Output file
+         const char *message,		// I - Printf-style message
+         ...)				// I - Additional arguments as needed
 {
-  return (strcmp(a->key, b->key));
+  va_list	ap;			// Pointer to arguments
+
+
+  va_start(ap, message);
+  vfprintf(fp, sfGetString(sf_default, message), ap);
+  va_end(ap);
 }
 
 
 //
-// '_sfPairFree()' - Free memory used by a key/text pair.
+// 'sfPuts()' - Print a formatted message followed by a newline.
 //
 
 void
-_sfPairFree(_sf_pair_t *pair)		// I - Pair
+sfPuts(FILE       *fp,			// I - Output file
+       const char *message)		// I - Message
 {
-  free(pair->key);
-  free(pair->text);
-  free(pair->comment);
+  fputs(sfGetString(sf_default, message), fp);
+  putc('\n', fp);
+}
+
+
+//
+// 'sfRegisterDirectory()' - Register strings files in a directory.
+//
+
+void
+sfRegisterDirectory(
+    const char *directory)		// I - Directory of .strings files
+{
+  char	filename[1024];			// .strings filename
+
+
+  if (!sf_locale)
+    return;
+
+  snprintf(filename, sizeof(filename), "%s/%s.strings", directory, sf_locale);
+  if (!sfLoadFromFile(sf_default, filename))
+  {
+    snprintf(filename, sizeof(filename), "%s/%2s.strings", directory, sf_locale);
+    sfLoadFromFile(sf_default, filename);
+  }
+}
+
+
+//
+// 'sfRegisterString()' - Register strings from a compiled-in string.
+//
+
+void
+sfRegisterString(const char *locale,	// I - Locale
+                 const char *data)	// I - Strings data
+{
+  if (!sf_locale)
+    return;
+
+  if (!strcmp(locale, sf_locale) || (strlen(locale) == 2 && !strncmp(locale, sf_locale, 2)))
+    sfLoadFromString(sf_default, data);
 }
 
 
@@ -566,7 +630,7 @@ _sfRemove(strings_file_t *sf,		// I - Localization strings
   // Free memory and then squeeze array as needed...
   _sf_rwlock_wrlock(sf->rwlock);
 
-  _sfPairFree(sf->pairs + n);
+  sf_free_pair(sf->pairs + n);
 
   sf->num_pairs --;
 
@@ -595,42 +659,43 @@ _sfSetError(strings_file_t *sf,		// I - Localization strings
 }
 
 
-#if 0
 //
-// '_papplLocPrintf()' - Print a localized string.
+// 'sfSetLocale()' - Set the locale.
 //
 
 void
-_papplLocPrintf(FILE       *fp,		// I - Output file
-                const char *message,	// I - Printf-style message string
-                ...)			// I - Additional arguments as needed
+sfSetLocale(void)
 {
-  va_list	ap;			// Argument pointer
+  if (sf_default)
+    return;
 
+  sf_default = sfNew();
 
-  // Load the default message catalog as needed...
-  if (!loc_default.pairs)
-  {
-    pthread_mutex_lock(&loc_mutex);
-    if (!loc_default.pairs)
-    {
-      cups_lang_t	*lang = cupsLangDefault();
-					// Default locale/language
-
-      pthread_rwlock_init(&loc_default.rwlock, NULL);
-
-      loc_default.language = strdup(lang->language);
-      loc_default.pairs    = cupsArrayNew((cups_array_cb_t)locpair_compare, NULL, NULL, 0, (cups_acopy_cb_t)locpair_copy, (cups_afree_cb_t)locpair_free);
-
-      loc_load_default(&loc_default);
-    }
-    pthread_mutex_unlock(&loc_mutex);
-  }
-
-  // Then format the localized message...
-  va_start(ap, message);
-  vfprintf(fp, papplLocGetString(&loc_default, message), ap);
-  putc('\n', fp);
-  va_end(ap);
+  if ((sf_locale = setlocale(LC_ALL, "")) == NULL || !strcmp(sf_locale, "C"))
+    sf_locale = "en";
 }
-#endif // 0
+
+
+//
+// 'sf_compare_pairs()' - Compare the keys of two key/text pairs.
+//
+
+int					// O - Result of comparison
+sf_compare_pairs(_sf_pair_t *a,		// I - First key/text pair
+	       _sf_pair_t *b)		// I - Second key/text pair
+{
+  return (strcmp(a->key, b->key));
+}
+
+
+//
+// 'sf_free_pair()' - Free memory used by a key/text pair.
+//
+
+static void
+sf_free_pair(_sf_pair_t *pair)		// I - Pair
+{
+  free(pair->key);
+  free(pair->text);
+  free(pair->comment);
+}

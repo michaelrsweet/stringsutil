@@ -47,6 +47,11 @@ extern const char	*sfGetString(strings_file_t *sf, const char *key);
 extern bool		sfLoadFromFile(strings_file_t *sf, const char *filename);
 extern bool		sfLoadFromString(strings_file_t *sf, const char *data);
 extern strings_file_t	*sfNew(void);
+extern void		sfPrintf(FILE *fp, const char *message, ...);
+extern void		sfPuts(FILE *fp, const char *message);
+extern void		sfRegisterDirectory(const char *directory);
+extern void		sfRegisterString(const char *locale, const char *data);
+extern void		sfSetLocale(void);
 
 
 #  ifdef __cplusplus
