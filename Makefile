@@ -35,14 +35,19 @@ TARGETS	=	libsf.a stringsutil
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-all:		$(TARGETS)
+all:
+	if test `uname` = Linux; then \
+		$(MAKE) LIBS="$(LIBS) -lpthread" $(TARGETS); \
+	else \
+		$(MAKE) $(TARGETS); \
+	fi
 
 
 clean:
 	rm -f $(TARGETS) $(OBJS)
 
 
-install:	$(TARGETS)
+install:	all
 	echo "Installing stringsutil to $(bindir)..."
 	mkdir -p $(bindir)
 	cp stringsutil $(bindir)
@@ -87,7 +92,7 @@ libsf.a:	strings-file.o
 	$(AR) $(ARFLAGS) $@ strings-file.o
 	$(RANLIB) $@
 
-test:		stringsutil
+test:		all
 	rm -f test.strings
 	echo "Scan test: \c"
 	./stringsutil -f test.strings -n SFSTR scan $(OBJS:.o=.c) >test.log 2>&1
