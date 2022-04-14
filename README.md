@@ -4,7 +4,7 @@ StringsUtil - Strings File Library and Utility
 ![Version](https://img.shields.io/github/v/release/michaelrsweet/stringsutil?include_prereleases)
 ![Apache 2.0](https://img.shields.io/github/license/michaelrsweet/stringsutil)
 [![Build Status](https://img.shields.io/github/workflow/status/michaelrsweet/stringsutil/Build)](https://github.com/michaelrsweet/stringsutil/actions/workflows/build.yml)
-[![Coverity Scan Status](https://img.shields.io/coverity/scan/NNNNN.svg)](https://scan.coverity.com/projects/michaelrsweet-stringsutil)
+[![Coverity Scan Status](https://img.shields.io/coverity/scan/24835.svg)](https://scan.coverity.com/projects/michaelrsweet-stringsutil)
 [![LGTM Grade](https://img.shields.io/lgtm/grade/cpp/github/michaelrsweet/stringsutil)](https://lgtm.com/projects/g/michaelrsweet/stringsutil/context:cpp)
 [![LGTM Alerts](https://img.shields.io/lgtm/alerts/github/michaelrsweet/stringsutil)](https://lgtm.com/projects/g/michaelrsweet/stringsutil/)
 
