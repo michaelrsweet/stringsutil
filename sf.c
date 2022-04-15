@@ -16,10 +16,8 @@
 // Local globals...
 //
 
-static sf_t		*sf_default = NULL;
-					// Default localization
-static const char	*sf_locale = NULL;
-					// Default locale
+static sf_t	*sf_default = NULL;	// Default localization
+static char	sf_locale[8] = "";	// Default locale
 
 
 //
@@ -80,11 +78,13 @@ _sfAdd(sf_t       *sf,			// I - Strings
 
 
 //
-// 'sfDelete()' - Free localization strings.
+// 'sfDelete()' - Free a collection of localization strings.
+//
+// This function frees all memory associated with the localization strings.
 //
 
 void
-sfDelete(sf_t *sf)		// I - Localization strings
+sfDelete(sf_t *sf)			// I - Localization strings
 {
   _sf_pair_t	*pair;			// Current pair
   size_t	count;			// Number of pairs
@@ -145,12 +145,20 @@ _sfFind(sf_t       *sf,			// I - Strings
 //
 // 'sfFormatString()' - Format a localized string.
 //
+// This function formats a printf-style localized string using the specified
+// localization strings.  If no localization exists for the format (key) string,
+// the original string is used.  All `snprintf` format specifiers are supported.
+//
+// The default localization strings ("sf" passed as `NULL`) are initialized
+// using the @link sfSetLocale@, @link sfRegisterDirectory@, and
+// @link sfRegisterString@ functions.
+//
 
 const char *				// O - Formatted localized string
-sfFormatString(sf_t       *sf,		// I - Localization strings
+sfFormatString(sf_t       *sf,		// I - Localization strings or `NULL` for default
                char       *buffer,	// I - Output buffer
                size_t     bufsize,	// I - Size of output buffer
-               const char *key,		// I - Format/key string
+               const char *key,		// I - Printf-style format/key string
                ...)			// I - Additional arguments as needed
 {
   va_list	ap;			// Argument pointer
@@ -176,6 +184,9 @@ sfFormatString(sf_t       *sf,		// I - Localization strings
 //
 // 'sfGetError()' - Get the last error message, if any.
 //
+// This function returns the last error from @link sfLoadFromFile@ and
+// @link sfLoadFromString@, if any.
+//
 
 const char *				// O - Last error message or `NULL` for none
 sfGetError(sf_t *sf)			// I - Localization strings
@@ -190,9 +201,16 @@ sfGetError(sf_t *sf)			// I - Localization strings
 //
 // 'sfGetString()' - Lookup a localized string.
 //
+// This function looks up a localized string for the specified key string.
+// If no localization exists, the key string is returned.
+//
+// The default localization strings ("sf" passed as `NULL`) are initialized
+// using the @link sfSetLocale@, @link sfRegisterDirectory@, and
+// @link sfRegisterString@ functions.
+//
 
 const char *				// O - Localized string
-sfGetString(sf_t       *sf,		// I - Localization strings
+sfGetString(sf_t       *sf,		// I - Localization strings or `NULL` for the default
             const char *key)		// I - Key string
 {
   _sf_pair_t	*match;			// Matching pair, if any
@@ -211,7 +229,14 @@ sfGetString(sf_t       *sf,		// I - Localization strings
 
 
 //
-// 'sfLoadFromFile()' - Load strings from a file.
+// 'sfLoadFromFile()' - Load a ".strings" file.
+//
+// This function loads a ".strings" file.  The "sf" argument specifies a
+// collection of localization strings that was created using the @link sfNew@
+// function.
+//
+// When loading the strings, any existing strings in the collection are left
+// unchanged.
 //
 
 bool					// O - `true` on success, `false` on failure
@@ -286,7 +311,14 @@ sfLoadFromFile(sf_t       *sf,		// I - Localization strings
 
 
 //
-// 'sfLoadFromString()' - Load strings from a constant string.
+// 'sfLoadFromString()' - Load a ".strings" file from a compiled-in string.
+//
+// This function loads a ".strings" file from a compiled-in string.  The "sf"
+// argument specifies a collection of localization strings that was created
+// using the @link sfNew@ function.
+//
+// When loading the strings, any existing strings in the collection are left
+// unchanged.
 //
 
 bool					// O - `true` on success, `false` on failure
@@ -534,6 +566,10 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 //
 // 'sfNew()' - Create a new (empty) set of localization strings.
 //
+// This function creates a new (empty) set of localization strings.  Use the
+// @link sfLoadFromFile@ and/or @link sfLoadFromString@ functions to load
+// localization strings.
+//
 
 sf_t *					// O - Localization strings
 sfNew(void)
@@ -552,6 +588,11 @@ sfNew(void)
 //
 // 'sfPrintf()' - Print a formatted localized message followed by a newline.
 //
+// This function prints a formatted localized message followed by a newline to
+// the specified file, typically `stdout` or `stderr`.  You must call
+// @link sfSetLocale@ and @link sfRegisterString@ or @link sfRegisterDirectory@
+// to initialize the message catalog that is used.
+//
 
 void
 sfPrintf(FILE       *fp,		// I - Output file
@@ -569,7 +610,12 @@ sfPrintf(FILE       *fp,		// I - Output file
 
 
 //
-// 'sfPuts()' - Print a formatted message followed by a newline.
+// 'sfPuts()' - Print a localized message followed by a newline.
+//
+// This function prints a localized message followed by a newline to the
+// specified file, typically `stdout` or `stderr`.  You must call
+// @link sfSetLocale@ and @link sfRegisterString@ or @link sfRegisterDirectory@
+// to initialize the message catalog that is used.
 //
 
 void
@@ -582,7 +628,10 @@ sfPuts(FILE       *fp,			// I - Output file
 
 
 //
-// 'sfRegisterDirectory()' - Register strings files in a directory.
+// 'sfRegisterDirectory()' - Register ".strings" files in a directory.
+//
+// This function registers ".strings" files in a directory.  You must call
+// @link sfSetLocale@ first to initialize the current locale.
 //
 
 void
@@ -592,7 +641,7 @@ sfRegisterDirectory(
   char	filename[1024];			// .strings filename
 
 
-  if (!sf_locale)
+  if (!sf_locale[0])
     return;
 
   snprintf(filename, sizeof(filename), "%s/%s.strings", directory, sf_locale);
@@ -605,14 +654,17 @@ sfRegisterDirectory(
 
 
 //
-// 'sfRegisterString()' - Register strings from a compiled-in string.
+// 'sfRegisterString()' - Register a ".strings" file from a compiled-in string.
+//
+// This function registers a ".strings" file from a compiled-in string.  You
+// must call @link sfSetLocale@ first to initialize the current locale.
 //
 
 void
 sfRegisterString(const char *locale,	// I - Locale
                  const char *data)	// I - Strings data
 {
-  if (!sf_locale)
+  if (!sf_locale[0])
     return;
 
   if (!strcmp(locale, sf_locale) || (strlen(locale) == 2 && !strncmp(locale, sf_locale, 2)))
@@ -661,19 +713,43 @@ _sfSetError(sf_t       *sf,		// I - Localization strings
 
 
 //
-// 'sfSetLocale()' - Set the locale.
+// 'sfSetLocale()' - Set the current locale.
+//
+// This function calls `setlocale` to initialize the current locale based on
+// the current user session, and then creates an empty message catalog that is
+// filled by calls to @link sfRegisterDirectory@ and/or @link sfRegisterString@.
 //
 
 void
 sfSetLocale(void)
 {
+  const char	*locale,		// Current locale
+		*charset;		// Character set in sf_locale
+  char		*ptr;			// Pointer into locale name
+
+
+  // Only initialize once...
   if (sf_default)
     return;
 
+  // Create an empty strings file object...
   sf_default = sfNew();
 
-  if ((sf_locale = setlocale(LC_ALL, "")) == NULL || !strcmp(sf_locale, "C") || !strncmp(sf_locale, "C/", 2))
-    sf_locale = "en";
+  // Set the current locale...
+  if ((locale = setlocale(LC_ALL, "")) == NULL || !strcmp(locale, "C") || !strncmp(locale, "C/", 2))
+    locale = "en";
+
+  // If the locale name has a character set specified and it is not UTF-8, then
+  // just output plain English...
+  if ((charset = strchr(locale, '.')) != NULL && strcmp(charset, ".UTF-8"))
+    locale = "en";
+
+  // Save the locale name minus the character set...
+  strncpy(sf_locale, locale, sizeof(sf_locale) - 1);
+  sf_locale[sizeof(sf_locale) - 1] = '\0';
+
+  if ((ptr = strchr(sf_locale, '.')) != NULL)
+    *ptr = '\0';
 }
 
 

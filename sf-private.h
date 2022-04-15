@@ -44,13 +44,6 @@ extern "C" {
 
 
 //
-// Macros...
-//
-
-#  define SFSTR(s) s
-
-
-//
 // Types...
 //
 

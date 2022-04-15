@@ -339,10 +339,50 @@ stringsutil -f es.strings import es.po
 <p>Use the <code>pkg-config</code> command to get the proper compiler and linker options:</p>
 <pre><code>CFLAGS = `pkgconfig --cflags libsf`
 LIBS = `pkgconfig --libs libsf`
+
+cc -o myprogram `pkgconfig --cflags libsf` myprogram.c `pkgconfig --libs libsf`
+</code></pre>
+<p>A typical program will either have a directory containing &quot;.strings&quot; files installed on disk or a collection of header files containing &quot;.strings&quot; files as constant C strings. Call <a href="#sfSetLocale"><code>sfSetLocale</code></a> to initialize the current locale and then <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a> or <a href="#sfRegisterString"><code>sfRegisterString</code></a> to initialize the default localization strings:</p>
+<pre><code class="language-c"><span class="comment">// &quot;.strings&quot; files in &quot;/usr/local/share/myapp/strings&quot;...</span>
+<span class="directive">#include &lt;sf.h&gt;</span>
+
+...
+
+sfSetLocale();
+sfRegisterDirectory(<span class="string">&quot;/usr/local/share/myapp/strings&quot;</span>);
+
+
+<span class="comment">// &quot;.strings&quot; files in constant strings...</span>
+<span class="directive">#include &lt;sf.h&gt;</span>
+<span class="directive">#include &quot;de_strings.h&quot;</span>
+<span class="directive">#include &quot;es_strings.h&quot;</span>
+<span class="directive">#include &quot;fr_strings.h&quot;</span>
+<span class="directive">#include &quot;it_strings.h&quot;</span>
+<span class="directive">#include &quot;ja_strings.h&quot;</span>
+
+...
+
+sfSetLocale();
+sfRegisterString(<span class="string">&quot;de&quot;</span>, de_strings);
+sfRegisterString(<span class="string">&quot;es&quot;</span>, es_strings);
+sfRegisterString(<span class="string">&quot;fr&quot;</span>, fr_strings);
+sfRegisterString(<span class="string">&quot;it&quot;</span>, it_strings);
+sfRegisterString(<span class="string">&quot;ja&quot;</span>, ja_strings);
+</code></pre>
+<p>Once the current local is initialized, you can use the <a href="#sfPrintf"><code>sfPrintf</code></a> and <a href="#sfPuts"><code>sfPuts</code></a> functions to display localized messages. The <code>SFSTR</code> macro is provided by the <code>&lt;sf.h&gt;</code> header to identify strings for localization:</p>
+<pre><code class="language-c">sfPuts(stdout, SFSTR(<span class="string">&quot;Usage: myprogram [OPTIONS] FILENAME&quot;</span>));
+
+...
+
+sfPrintf(stderr, SFSTR(<span class="string">&quot;myprogram: Expected '-n' value %d out of range.&quot;</span>), n);
+
+...
+
+sfPrintf(stderr, SFSTR(<span class="string">&quot;myprogram: Syntax error on line %d of '%s'.&quot;</span>), linenum, filename);
 </code></pre>
 <h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
 <h3 class="function"><a id="sfDelete">sfDelete</a></h3>
-<p class="description">Free localization strings.</p>
+<p class="description">Free a collection of localization strings.</p>
 <p class="code">
 void sfDelete(<a href="#sf_t">sf_t</a> *sf);</p>
 <h4 class="parameters">Parameters</h4>
@@ -350,6 +390,8 @@ void sfDelete(<a href="#sf_t">sf_t</a> *sf);</p>
 <tr><th>sf</th>
 <td class="description">Localization strings</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function frees all memory associated with the localization strings.</p>
 <h3 class="function"><a id="sfFormatString">sfFormatString</a></h3>
 <p class="description">Format a localized string.</p>
 <p class="code">
@@ -357,18 +399,26 @@ const char *sfFormatString(<a href="#sf_t">sf_t</a> *sf, char *buffer, size_t bu
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
-<td class="description">Localization strings</td></tr>
+<td class="description">Localization strings or <code>NULL</code> for default</td></tr>
 <tr><th>buffer</th>
 <td class="description">Output buffer</td></tr>
 <tr><th>bufsize</th>
 <td class="description">Size of output buffer</td></tr>
 <tr><th>key</th>
-<td class="description">Format/key string</td></tr>
+<td class="description">Printf-style format/key string</td></tr>
 <tr><th>...</th>
 <td class="description">Additional arguments as needed</td></tr>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Formatted localized string</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function formats a printf-style localized string using the specified
+localization strings.  If no localization exists for the format (key) string,
+the original string is used.  All <code>snprintf</code> format specifiers are supported.<br>
+<br>
+The default localization strings (&quot;sf&quot; passed as <code>NULL</code>) are initialized
+using the <a href="#sfSetLocale"><code>sfSetLocale</code></a>, <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a>, and
+<a href="#sfRegisterString"><code>sfRegisterString</code></a> functions.</p>
 <h3 class="function"><a id="sfGetError">sfGetError</a></h3>
 <p class="description">Get the last error message, if any.</p>
 <p class="code">
@@ -380,6 +430,9 @@ const char *sfGetError(<a href="#sf_t">sf_t</a> *sf);</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Last error message or <code>NULL</code> for none</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function returns the last error from <a href="#sfLoadFromFile"><code>sfLoadFromFile</code></a> and
+<a href="#sfLoadFromString"><code>sfLoadFromString</code></a>, if any.</p>
 <h3 class="function"><a id="sfGetString">sfGetString</a></h3>
 <p class="description">Lookup a localized string.</p>
 <p class="code">
@@ -387,14 +440,21 @@ const char *sfGetString(<a href="#sf_t">sf_t</a> *sf, const char *key);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>sf</th>
-<td class="description">Localization strings</td></tr>
+<td class="description">Localization strings or <code>NULL</code> for the default</td></tr>
 <tr><th>key</th>
 <td class="description">Key string</td></tr>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Localized string</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function looks up a localized string for the specified key string.
+If no localization exists, the key string is returned.<br>
+<br>
+The default localization strings (&quot;sf&quot; passed as <code>NULL</code>) are initialized
+using the <a href="#sfSetLocale"><code>sfSetLocale</code></a>, <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a>, and
+<a href="#sfRegisterString"><code>sfRegisterString</code></a> functions.</p>
 <h3 class="function"><a id="sfLoadFromFile">sfLoadFromFile</a></h3>
-<p class="description">Load strings from a file.</p>
+<p class="description">Load a &quot;.strings&quot; file.</p>
 <p class="code">
 bool sfLoadFromFile(<a href="#sf_t">sf_t</a> *sf, const char *filename);</p>
 <h4 class="parameters">Parameters</h4>
@@ -406,8 +466,15 @@ bool sfLoadFromFile(<a href="#sf_t">sf_t</a> *sf, const char *filename);</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description"><code>true</code> on success, <code>false</code> on failure</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function loads a &quot;.strings&quot; file.  The &quot;sf&quot; argument specifies a
+collection of localization strings that was created using the <a href="#sfNew"><code>sfNew</code></a>
+function.<br>
+<br>
+When loading the strings, any existing strings in the collection are left
+unchanged.</p>
 <h3 class="function"><a id="sfLoadFromString">sfLoadFromString</a></h3>
-<p class="description">Load strings from a constant string.</p>
+<p class="description">Load a &quot;.strings&quot; file from a compiled-in string.</p>
 <p class="code">
 bool sfLoadFromString(<a href="#sf_t">sf_t</a> *sf, const char *data);</p>
 <h4 class="parameters">Parameters</h4>
@@ -419,12 +486,23 @@ bool sfLoadFromString(<a href="#sf_t">sf_t</a> *sf, const char *data);</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description"><code>true</code> on success, <code>false</code> on failure</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function loads a &quot;.strings&quot; file from a compiled-in string.  The &quot;sf&quot;
+argument specifies a collection of localization strings that was created
+using the <a href="#sfNew"><code>sfNew</code></a> function.<br>
+<br>
+When loading the strings, any existing strings in the collection are left
+unchanged.</p>
 <h3 class="function"><a id="sfNew">sfNew</a></h3>
 <p class="description">Create a new (empty) set of localization strings.</p>
 <p class="code">
 <a href="#sf_t">sf_t</a> *sfNew(void);</p>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Localization strings</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function creates a new (empty) set of localization strings.  Use the
+<a href="#sfLoadFromFile"><code>sfLoadFromFile</code></a> and/or <a href="#sfLoadFromString"><code>sfLoadFromString</code></a> functions to load
+localization strings.</p>
 <h3 class="function"><a id="sfPrintf">sfPrintf</a></h3>
 <p class="description">Print a formatted localized message followed by a newline.</p>
 <p class="code">
@@ -438,8 +516,13 @@ void sfPrintf(FILE *fp, const char *message, ...);</p>
 <tr><th>...</th>
 <td class="description">Additional arguments as needed</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function prints a formatted localized message followed by a newline to
+the specified file, typically <code>stdout</code> or <code>stderr</code>.  You must call
+<a href="#sfSetLocale"><code>sfSetLocale</code></a> and <a href="#sfRegisterString"><code>sfRegisterString</code></a> or <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a>
+to initialize the message catalog that is used.</p>
 <h3 class="function"><a id="sfPuts">sfPuts</a></h3>
-<p class="description">Print a formatted message followed by a newline.</p>
+<p class="description">Print a localized message followed by a newline.</p>
 <p class="code">
 void sfPuts(FILE *fp, const char *message);</p>
 <h4 class="parameters">Parameters</h4>
@@ -449,8 +532,13 @@ void sfPuts(FILE *fp, const char *message);</p>
 <tr><th>message</th>
 <td class="description">Message</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function prints a localized message followed by a newline to the
+specified file, typically <code>stdout</code> or <code>stderr</code>.  You must call
+<a href="#sfSetLocale"><code>sfSetLocale</code></a> and <a href="#sfRegisterString"><code>sfRegisterString</code></a> or <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a>
+to initialize the message catalog that is used.</p>
 <h3 class="function"><a id="sfRegisterDirectory">sfRegisterDirectory</a></h3>
-<p class="description">Register strings files in a directory.</p>
+<p class="description">Register &quot;.strings&quot; files in a directory.</p>
 <p class="code">
 void sfRegisterDirectory(const char *directory);</p>
 <h4 class="parameters">Parameters</h4>
@@ -458,8 +546,11 @@ void sfRegisterDirectory(const char *directory);</p>
 <tr><th>directory</th>
 <td class="description">Directory of .strings files</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function registers &quot;.strings&quot; files in a directory.  You must call
+<a href="#sfSetLocale"><code>sfSetLocale</code></a> first to initialize the current locale.</p>
 <h3 class="function"><a id="sfRegisterString">sfRegisterString</a></h3>
-<p class="description">Register strings from a compiled-in string.</p>
+<p class="description">Register a &quot;.strings&quot; file from a compiled-in string.</p>
 <p class="code">
 void sfRegisterString(const char *locale, const char *data);</p>
 <h4 class="parameters">Parameters</h4>
@@ -469,10 +560,17 @@ void sfRegisterString(const char *locale, const char *data);</p>
 <tr><th>data</th>
 <td class="description">Strings data</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function registers a &quot;.strings&quot; file from a compiled-in string.  You
+must call <a href="#sfSetLocale"><code>sfSetLocale</code></a> first to initialize the current locale.</p>
 <h3 class="function"><a id="sfSetLocale">sfSetLocale</a></h3>
-<p class="description">Set the locale.</p>
+<p class="description">Set the current locale.</p>
 <p class="code">
 void sfSetLocale(void);</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function calls <code>setlocale</code> to initialize the current locale based on
+the current user session, and then creates an empty message catalog that is
+filled by calls to <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a> and/or <a href="#sfRegisterString"><code>sfRegisterString</code></a>.</p>
 <h2 class="title"><a id="TYPES">Data Types</a></h2>
 <h3 class="typedef"><a id="sf_t">sf_t</a></h3>
 <p class="description">Strings file</p>

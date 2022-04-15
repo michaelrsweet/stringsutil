@@ -1,15 +1,78 @@
-.TH libsf 3 "stringsutil - libsf functions" "2022-04-14" "stringsutil - libsf functions"
+.TH libsf 3 "stringsutil - libsf functions" "2022-04-15" "stringsutil - libsf functions"
 .SH NAME
 libsf \- stringsutil - libsf functions
+.SH INTRODUCTION
+.PP
+The libsf library has a single header file:
+.nf
+
+    #include <sf.h>
+.fi
+.PP
+Use the pkg\-config command to get the proper compiler and linker options:
+.nf
+
+    CFLAGS = `pkgconfig \-\-cflags libsf`
+    LIBS = `pkgconfig \-\-libs libsf`
+    
+    cc \-o myprogram `pkgconfig \-\-cflags libsf` myprogram.c `pkgconfig \-\-libs libsf`
+.fi
+.PP
+A typical program will either have a directory containing ".strings" files installed on disk or a collection of header files containing ".strings" files as constant C strings. Call sfSetLocale to initialize the current locale and then sfRegisterDirectory or sfRegisterString to initialize the default localization strings:
+.nf
+
+    // ".strings" files in "/usr/local/share/myapp/strings"...
+    #include <sf.h>
+    
+    \...
+    
+    sfSetLocale();
+    sfRegisterDirectory("/usr/local/share/myapp/strings");
+    
+    
+    // ".strings" files in constant strings...
+    #include <sf.h>
+    #include "de_strings.h"
+    #include "es_strings.h"
+    #include "fr_strings.h"
+    #include "it_strings.h"
+    #include "ja_strings.h"
+    
+    \...
+    
+    sfSetLocale();
+    sfRegisterString("de", de_strings);
+    sfRegisterString("es", es_strings);
+    sfRegisterString("fr", fr_strings);
+    sfRegisterString("it", it_strings);
+    sfRegisterString("ja", ja_strings);
+.fi
+.PP
+Once the current local is initialized, you can use the sfPrintf and sfPuts functions to display localized messages. The SFSTR macro is provided by the <sf.h> header to identify strings for localization:
+.nf
+
+    sfPuts(stdout, SFSTR("Usage: myprogram [OPTIONS] FILENAME"));
+    
+    \...
+    
+    sfPrintf(stderr, SFSTR("myprogram: Expected '\-n' value %d out of range."), n);
+    
+    \...
+    
+    sfPrintf(stderr, SFSTR("myprogram: Syntax error on line %d of '%s'."), linenum, filename);
+.fi
+
 .SH FUNCTIONS
 .SS sfDelete
-Free localization strings.
+Free a collection of localization strings.
 .PP
 .nf
 void sfDelete (
     sf_t *sf
 );
 .fi
+.PP
+This function frees all memory associated with the localization strings.
 .SS sfFormatString
 Format a localized string.
 .PP
@@ -22,6 +85,14 @@ const char * sfFormatString (
     ...
 );
 .fi
+.PP
+This function formats a printf-style localized string using the specified
+localization strings.  If no localization exists for the format (key) string,
+the original string is used.  All \fBsnprintf\fR format specifiers are supported.
+.PP
+The default localization strings ("sf" passed as \fBNULL\fR) are initialized
+using the \fIsfSetLocale\fR, \fIsfRegisterDirectory\fR, and
+\fIsfRegisterString\fR functions.
 .SS sfGetError
 Get the last error message, if any.
 .PP
@@ -30,6 +101,9 @@ const char * sfGetError (
     sf_t *sf
 );
 .fi
+.PP
+This function returns the last error from \fIsfLoadFromFile\fR and
+\fIsfLoadFromString\fR, if any.
 .SS sfGetString
 Lookup a localized string.
 .PP
@@ -39,8 +113,15 @@ const char * sfGetString (
     const char *key
 );
 .fi
+.PP
+This function looks up a localized string for the specified key string.
+If no localization exists, the key string is returned.
+.PP
+The default localization strings ("sf" passed as \fBNULL\fR) are initialized
+using the \fIsfSetLocale\fR, \fIsfRegisterDirectory\fR, and
+\fIsfRegisterString\fR functions.
 .SS sfLoadFromFile
-Load strings from a file.
+Load a ".strings" file.
 .PP
 .nf
 bool  sfLoadFromFile (
@@ -48,8 +129,15 @@ bool  sfLoadFromFile (
     const char *filename
 );
 .fi
+.PP
+This function loads a ".strings" file.  The "sf" argument specifies a
+collection of localization strings that was created using the \fIsfNew\fR
+function.
+.PP
+When loading the strings, any existing strings in the collection are left
+unchanged.
 .SS sfLoadFromString
-Load strings from a constant string.
+Load a ".strings" file from a compiled-in string.
 .PP
 .nf
 bool  sfLoadFromString (
@@ -57,12 +145,23 @@ bool  sfLoadFromString (
     const char *data
 );
 .fi
+.PP
+This function loads a ".strings" file from a compiled-in string.  The "sf"
+argument specifies a collection of localization strings that was created
+using the \fIsfNew\fR function.
+.PP
+When loading the strings, any existing strings in the collection are left
+unchanged.
 .SS sfNew
 Create a new (empty) set of localization strings.
 .PP
 .nf
 sf_t * sfNew (void);
 .fi
+.PP
+This function creates a new (empty) set of localization strings.  Use the
+\fIsfLoadFromFile\fR and/or \fIsfLoadFromString\fR functions to load
+localization strings.
 .SS sfPrintf
 Print a formatted localized message followed by a newline.
 .PP
@@ -73,8 +172,13 @@ void sfPrintf (
     ...
 );
 .fi
+.PP
+This function prints a formatted localized message followed by a newline to
+the specified file, typically \fBstdout\fR or \fBstderr\fR.  You must call
+\fIsfSetLocale\fR and \fIsfRegisterString\fR or \fIsfRegisterDirectory\fR
+to initialize the message catalog that is used.
 .SS sfPuts
-Print a formatted message followed by a newline.
+Print a localized message followed by a newline.
 .PP
 .nf
 void sfPuts (
@@ -82,16 +186,24 @@ void sfPuts (
     const char *message
 );
 .fi
+.PP
+This function prints a localized message followed by a newline to the
+specified file, typically \fBstdout\fR or \fBstderr\fR.  You must call
+\fIsfSetLocale\fR and \fIsfRegisterString\fR or \fIsfRegisterDirectory\fR
+to initialize the message catalog that is used.
 .SS sfRegisterDirectory
-Register strings files in a directory.
+Register ".strings" files in a directory.
 .PP
 .nf
 void sfRegisterDirectory (
     const char *directory
 );
 .fi
+.PP
+This function registers ".strings" files in a directory.  You must call
+\fIsfSetLocale\fR first to initialize the current locale.
 .SS sfRegisterString
-Register strings from a compiled-in string.
+Register a ".strings" file from a compiled-in string.
 .PP
 .nf
 void sfRegisterString (
@@ -99,12 +211,19 @@ void sfRegisterString (
     const char *data
 );
 .fi
+.PP
+This function registers a ".strings" file from a compiled-in string.  You
+must call \fIsfSetLocale\fR first to initialize the current locale.
 .SS sfSetLocale
-Set the locale.
+Set the current locale.
 .PP
 .nf
 void sfSetLocale (void);
 .fi
+.PP
+This function calls \fBsetlocale\fR to initialize the current locale based on
+the current user session, and then creates an empty message catalog that is
+filled by calls to \fIsfRegisterDirectory\fR and/or \fIsfRegisterString\fR.
 .SH TYPES
 .SS sf_t
 Strings file

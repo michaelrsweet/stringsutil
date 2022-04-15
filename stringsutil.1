@@ -8,7 +8,7 @@
 .\" Licensed under Apache License v2.0.  See the file "LICENSE" for more
 .\" information.
 .\"
-.TH stringsutil 1 "StringsUtil 1.0" "2022-04-13" "Michael R Sweet"
+.TH stringsutil 1 "StringsUtil 1.0" "2022-04-15" "Michael R Sweet"
 .SH NAME
 stringsutil \- manipulate .strings files for localization
 .SH SYNOPSIS
@@ -99,6 +99,7 @@ Specifies the destination or base ".strings" localization file for the sub-comma
 \fB\-n \fIFUNCTION-NAME\fR
 When scanning source files, specifies the function or macro name that is used to identify localizable strings.
 The first argument must be a C string, optionally prefixed by a comment.
+The default function name is "SFSTR" which is defined in the <sf.h> header file.
 
 .SH EXAMPLES
 Create a ".strings" file by scanning source files in the current directory:

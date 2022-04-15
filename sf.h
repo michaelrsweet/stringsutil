@@ -19,6 +19,7 @@ extern "C" {
 // Macros...
 //
 
+#  define SFSTR(s) s
 #  if _WIN32
 #    define _SF_FORMAT(a,b)
 #  elif defined(__has_extension) || defined(__GNUC__)

@@ -49,7 +49,7 @@ main(int  argc,				// I - Number of command-line arguments
 		num_files = 0;		// Number of files
   const char	*files[1000],		// Files
 		*command = NULL,	// Command
-		*funcname = NULL,	// Function name
+		*funcname = "SFSTR",	// Function name
 		*opt;			// Pointer to option
   bool		addnew = false,		// Add new strings on import?
 		clean = false;		// Clean old strings?
