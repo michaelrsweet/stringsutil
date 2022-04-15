@@ -1,7 +1,7 @@
 //
 // Strings file utility for StringsUtil.
 //
-// Copyright © 2022 by Michael R Sweet.
+// Copyright © 2017-2022 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -13,11 +13,13 @@
 //   stringsutil export -f FILENAME.strings FILENAME.{c,cc,cpp,cxx,h,po}
 //   stringsutil import [-a] -f FILENAME.strings FILENAME.{po,strings}
 //   stringsutil report -f FILENAME.strings FILENAME-LL.strings
+//   stringsutil translate -f FILENAME.strings -l LOCALE [-t URL]
 //
 
 #include "sf-private.h"
 #include "es_strings.h"
 #include "fr_strings.h"
+#include <cups/cups.h>
 
 
 //
@@ -25,6 +27,10 @@
 //
 
 static bool	compare_formats(const char *s1, const char *s2);
+static int	decode_json(const char *data, cups_option_t **vars);
+static const char *decode_string(const char *data, char term, char *buffer, size_t bufsize);
+static char	*encode_json(int num_vars, cups_option_t *vars);
+static char	*encode_string(const char *s, char *bufptr, char *bufend);
 static int	export_strings(sf_t *sf, const char *sfname, const char *filename);
 static void	import_string(sf_t *sf, char *msgid, char *msgstr, char *comment, bool addnew, int *added, int *ignored, int *modified);
 static int	import_strings(sf_t *sf, const char *sfname, const char *filename, bool addnew);
@@ -32,6 +38,7 @@ static bool	matching_formats(const char *key, const char *text);
 static int	merge_strings(sf_t *sf, const char *sfname, const char *filename, bool clean);
 static int	report_strings(sf_t *sf, const char *filename);
 static int	scan_files(sf_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
+static int	translate_strings(sf_t *sf, const char *sfname, const char *url, const char *apikey, const char *language, const char *filename);
 static int	usage(FILE *fp, int status);
 static void	write_string(FILE *fp, const char *s, bool code);
 static bool	write_strings(sf_t *sf, const char *sfname);
@@ -48,8 +55,13 @@ main(int  argc,				// I - Number of command-line arguments
   int		i,			// Looping var
 		num_files = 0;		// Number of files
   const char	*files[1000],		// Files
+		*apikey = getenv("LIBRETRANSLATE_APIKEY"),
+					// API key
 		*command = NULL,	// Command
 		*funcname = "SFSTR",	// Function name
+		*language = NULL,	// Language code
+		*url = getenv("LIBRETRANSLATE_URL"),
+					// URL to LibreTranslate server
 		*opt;			// Pointer to option
   bool		addnew = false,		// Add new strings on import?
 		clean = false;		// Clean old strings?
@@ -86,6 +98,28 @@ main(int  argc,				// I - Number of command-line arguments
       {
         switch (*opt)
         {
+          case 'A' : // -A APIKEY
+              i ++;
+              if (i >= argc)
+              {
+                sfPuts(stderr, SFSTR("stringsutil: Expected LibreTranslate API key after '-A'."));
+                return (usage(stderr, 1));
+              }
+
+              apikey = argv[i];
+              break;
+
+          case 'T' : // -T URL
+              i ++;
+              if (i >= argc)
+              {
+                sfPuts(stderr, SFSTR("stringsutil: Expected LibreTranslate URL after '-T'."));
+                return (usage(stderr, 1));
+              }
+
+              url = argv[i];
+              break;
+
           case 'a' : // -a
               addnew = true;
               break;
@@ -112,6 +146,17 @@ main(int  argc,				// I - Number of command-line arguments
               }
               break;
 
+          case 'l' : // -l LOCALE
+              i ++;
+              if (i >= argc)
+              {
+                sfPuts(stderr, SFSTR("stringsutil: Expected language code after '-l'."));
+                return (usage(stderr, 1));
+              }
+
+              language = argv[i];
+              break;
+
           case 'n' : // -n FUNCTION-NAME
               i ++;
               if (i >= argc)
@@ -128,7 +173,7 @@ main(int  argc,				// I - Number of command-line arguments
         }
       }
     }
-    else if (!strcmp(argv[i], "export") || !strcmp(argv[i], "import") || !strcmp(argv[i], "merge") || !strcmp(argv[i], "report") || !strcmp(argv[i], "scan"))
+    else if (!strcmp(argv[i], "export") || !strcmp(argv[i], "import") || !strcmp(argv[i], "merge") || !strcmp(argv[i], "report") || !strcmp(argv[i], "scan") || !strcmp(argv[i], "translate"))
     {
       command = argv[i];
     }
@@ -198,6 +243,10 @@ main(int  argc,				// I - Number of command-line arguments
   {
     return (report_strings(sf, files[0]));
   }
+  else if (!strcmp(command, "translate"))
+  {
+    return (translate_strings(sf, sfname, url, apikey, language, files[0]));
+  }
 
   return (0);
 }
@@ -225,6 +274,433 @@ compare_formats(const char *s1,		// I - First string (key)
   }
 
   return (true);
+}
+
+
+//
+// 'decode_json()' - Decode an application/json object.
+//
+
+static int				// O - Number of JSON member variables or 0 on error
+decode_json(const char    *data,	// I - JSON data
+            cups_option_t **vars)	// O - JSON member variables or @code NULL@ on error
+{
+  int	num_vars = 0;			// Number of form variables
+  char	name[1024],			// Variable name
+	value[4096],			// Variable value
+	*ptr,				// Pointer into value
+	*end;				// End of value
+
+
+  // Scan the string for "name":"value" pairs, unescaping values as needed.
+  *vars = NULL;
+
+  if (!data || *data != '{')
+    return (0);
+
+  data ++;
+
+  while (*data)
+  {
+    // Skip leading whitespace/commas...
+    while (*data && (isspace(*data & 255) || *data == ','))
+      data ++;
+
+    // Get the member variable name, unless we have the end of the object...
+    if (*data == '}')
+      break;
+    else if (*data != '\"')
+      goto decode_error;
+
+    data = decode_string(data + 1, '\"', name, sizeof(name));
+
+    if (*data != '\"')
+      goto decode_error;
+
+    data ++;
+
+    if (*data != ':')
+      goto decode_error;
+
+    data ++;
+
+    if (*data == '\"')
+    {
+      // Quoted string value...
+      data = decode_string(data + 1, '\"', value, sizeof(value));
+
+      if (*data != '\"')
+	goto decode_error;
+
+      data ++;
+    }
+    else if (*data == '[')
+    {
+      // Array value...
+      ptr    = value;
+      end    = value + sizeof(value) - 1;
+      *ptr++ = '[';
+
+      for (data ++; *data && *data != ']';)
+      {
+        if (*data == ',')
+        {
+          if (ptr < end)
+            *ptr++ = *data++;
+	  else
+	    goto decode_error;
+        }
+        else if (*data == '\"')
+        {
+          // Quoted string value...
+          do
+          {
+	    if (*data == '\\')
+	    {
+	      if (ptr < end)
+		*ptr++ = *data++;
+	      else
+		goto decode_error;
+
+              if (!strchr("\\\"/bfnrtu", *data))
+                goto decode_error;
+
+	      if (*data == 'u')
+	      {
+		if (ptr < (end - 5))
+		  *ptr++ = *data++;
+		else
+		  goto decode_error;
+
+	        if (isxdigit(data[0] & 255) && isxdigit(data[1] & 255) && isxdigit(data[2] & 255) && isxdigit(data[3] & 255))
+	        {
+		  *ptr++ = *data++;
+		  *ptr++ = *data++;
+		  *ptr++ = *data++;
+		  /* 4th character is copied below */
+	        }
+	        else
+	          goto decode_error;
+	      }
+	    }
+
+	    if (ptr < end)
+	      *ptr++ = *data++;
+	    else
+	      goto decode_error;
+	  }
+	  while (*data && *data != '\"');
+
+	  if (*data == '\"')
+	  {
+	    if (ptr < end)
+	      *ptr++ = *data++;
+	    else
+	      goto decode_error;
+	  }
+        }
+        else if (*data == '{' || *data == '[')
+        {
+          // Unsupported nested array or object value...
+	  goto decode_error;
+	}
+	else
+	{
+	  // Number, boolean, etc.
+          while (*data && *data != ',' && !isspace(*data & 255))
+          {
+            if (ptr < end)
+              *ptr++ = *data++;
+	    else
+	      goto decode_error;
+	  }
+	}
+      }
+
+      if (*data != ']' || ptr >= end)
+        goto decode_error;
+
+      *ptr++ = *data++;
+      *ptr   = '\0';
+
+      data ++;
+    }
+    else if (*data == '{')
+    {
+      // Unsupported object value...
+      goto decode_error;
+    }
+    else
+    {
+      // Number, boolean, etc.
+      for (ptr = value; *data && *data != ',' && !isspace(*data & 255); data ++)
+        if (ptr < (value + sizeof(value) - 1))
+          *ptr++ = *data;
+
+      *ptr = '\0';
+    }
+
+    // Add the variable...
+    num_vars = cupsAddOption(name, value, num_vars, vars);
+  }
+
+  return (num_vars);
+
+  // If we get here there was an error in the form data...
+  decode_error:
+
+  cupsFreeOptions(num_vars, *vars);
+
+  *vars = NULL;
+
+  return (0);
+}
+
+
+//
+// 'decode_string()' - Decode a URL-encoded string.
+//
+
+static const char *                     // O - New pointer into string
+decode_string(const char *data,         // I - Pointer into data string
+              char       term,          // I - Terminating character
+              char       *buffer,       // I - String buffer
+              size_t     bufsize)       // I - Size of string buffer
+{
+  int	ch;				// Current character
+  char	*ptr,				// Pointer info buffer
+	*end;				// Pointer to end of buffer
+
+
+  for (ptr = buffer, end = buffer + bufsize - 1; *data && *data != term; data ++)
+  {
+    if ((ch = *data) == '\\')
+    {
+      // "\something" is an escaped character...
+      data ++;
+
+      switch (*data)
+      {
+        case '\\' :
+            ch = '\\';
+            break;
+        case '\"' :
+            ch = '\"';
+            break;
+        case '/' :
+            ch = '/';
+            break;
+        case 'b' :
+            ch = 0x08;
+            break;
+        case 'f' :
+            ch = 0x0c;
+            break;
+        case 'n' :
+            ch = 0x0a;
+            break;
+        case 'r' :
+            ch = 0x0d;
+            break;
+        case 't' :
+            ch = 0x09;
+            break;
+        case 'u' :
+            data ++;
+            if (isxdigit(data[0] & 255) && isxdigit(data[1] & 255) && isxdigit(data[2] & 255) && isxdigit(data[3] & 255))
+            {
+              if (isalpha(data[0]))
+                ch = (tolower(data[0]) - 'a' + 10) << 12;
+	      else
+	        ch = (data[0] - '0') << 12;
+
+              if (isalpha(data[1]))
+                ch |= (tolower(data[1]) - 'a' + 10) << 8;
+	      else
+	        ch |= (data[1] - '0') << 8;
+
+              if (isalpha(data[2]))
+                ch |= (tolower(data[2]) - 'a' + 10) << 4;
+	      else
+	        ch |= (data[2] - '0') << 4;
+
+              if (isalpha(data[3]))
+                ch |= tolower(data[3]) - 'a' + 10;
+	      else
+	        ch |= data[3] - '0';
+              break;
+            }
+
+            // Fall through to default on error
+	default :
+	    *buffer = '\0';
+	    return (NULL);
+      }
+    }
+
+    if (ch && ptr < end)
+      *ptr++ = (char)ch;
+  }
+
+  *ptr = '\0';
+
+  return (data);
+}
+
+
+//
+// 'encode_json()' - Encode variables as a JSON object.
+//
+// The caller is responsible for calling @code free@ on the returned string.
+//
+
+static char *				// O - Encoded data or @code NULL@ on error
+encode_json(
+    int           num_vars,		// I - Number of JSON member variables
+    cups_option_t *vars)		// I - JSON member variables
+{
+  char		buffer[65536],		// Temporary buffer
+		*bufptr = buffer,	// Current position in buffer
+		*bufend = buffer + sizeof(buffer) - 2;
+					// End of buffer
+  const char	*valptr;		// Pointer into value
+  int		is_number;		// Is the value a number?
+
+  *bufptr++ = '{';
+  *bufend   = '\0';
+
+  while (num_vars > 0)
+  {
+    bufptr = encode_string(vars->name, bufptr, bufend);
+
+    if (bufptr >= bufend)
+      return (NULL);
+
+    *bufptr++ = ':';
+
+    if (vars->value[0] == '[')
+    {
+      // Array value, already encoded...
+      strncpy(bufptr, vars->value, bufend - bufptr);
+      bufptr += strlen(bufptr);
+    }
+    else
+    {
+      is_number = 0;
+
+      if (vars->value[0] == '-' || isdigit(vars->value[0] & 255))
+      {
+	for (valptr = vars->value + 1; *valptr && (isdigit(*valptr & 255) || *valptr == '.'); valptr ++);
+
+	if (*valptr == 'e' || *valptr == 'E' || !*valptr)
+	  is_number = 1;
+      }
+
+      if (is_number)
+      {
+        // Copy number literal...
+	for (valptr = vars->value; *valptr; valptr ++)
+	{
+	  if (bufptr < bufend)
+	    *bufptr++ = *valptr;
+	}
+      }
+      else
+      {
+        // Copy string value...
+	bufptr = encode_string(vars->value, bufptr, bufend);
+      }
+    }
+
+    num_vars --;
+    vars ++;
+
+    if (num_vars > 0)
+    {
+      if (bufptr >= bufend)
+        return (NULL);
+
+      *bufptr++ = ',';
+    }
+  }
+
+  *bufptr++ = '}';
+  *bufptr   = '\0';
+
+  return (strdup(buffer));
+}
+
+
+//
+// 'encode_string()' - URL-encode a string.
+//
+// The new buffer pointer can go past bufend, but we don't write past there...
+//
+
+static char *                           // O - New buffer pointer
+encode_string(const char *s,            // I - String to encode
+              char       *bufptr,       // I - Pointer into buffer
+              char       *bufend)       // I - End of buffer
+{
+  if (bufptr < bufend)
+    *bufptr++ = '\"';
+
+  while (*s && bufptr < bufend)
+  {
+    if (*s == '\b')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = 'b';
+    }
+    else if (*s == '\f')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = 'f';
+    }
+    else if (*s == '\n')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = 'n';
+    }
+    else if (*s == '\r')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = 'r';
+    }
+    else if (*s == '\t')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = 't';
+    }
+    else if (*s == '\\')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = '\\';
+    }
+    else if (*s == '\"')
+    {
+      *bufptr++ = '\\';
+      if (bufptr < bufend)
+        *bufptr++ = '\"';
+    }
+    else if (*s >= ' ')
+      *bufptr++ = *s;
+
+    s ++;
+  }
+
+  if (bufptr < bufend)
+    *bufptr++ = '\"';
+
+  *bufptr = '\0';
+
+  return (bufptr);
 }
 
 
@@ -995,6 +1471,195 @@ scan_files(sf_t       *sf,		// I - Strings
   }
 
   return (write_strings(sf, sfname) ? 0 : 1);
+}
+
+
+//
+// 'translate_strings()' - Do a machine translation of key strings using a
+//                         LibreTranslate service.
+//
+
+static int				// O - Exit status
+translate_strings(sf_t       *sf,	// I - Strings
+                  const char *sfname,	// I - Strings filename
+                  const char *url,	// I - Translation service URL
+                  const char *apikey,	// I - Translation service API key, if any
+                  const char *language,	// I - Language code
+                  const char *filename)	// I - Base strings filename
+{
+  http_t	*http;			// Connection to service
+  char		scheme[32],		// URL scheme
+		userpass[32],		// Username:password
+		host[256],		// Hostname/IP address
+		resource[256];		// Resource path
+  int		port;			// Port number
+  http_encryption_t encryption;		// Type of encryption to use
+  int		num_request = 0,	// Number of request values
+		num_response;		// Number of response values
+  cups_option_t	*request,		// Request values
+		*response;		// Response values
+  char		*request_json,		// JSON data for request
+		response_json[8192],	// JSON data in response
+		*response_ptr;		// Pointer into response
+  size_t	request_len,		// Request length
+		response_len;		// Response length
+  ssize_t	response_bytes;		// Size of JSON response
+  const char	*value;			// Response value
+  http_status_t	status;			// HTTP response status
+  http_state_t	state;			// Current HTTP state
+  sf_t		*base_sf;		// Base strings
+  const char	*base_text;		// Base localized text
+  _sf_pair_t	*pair;			// Current pair
+  size_t	count;			// Number of pairs remaining
+  int		changes = 0;		// Did we change any strings?
+
+
+  // Validate the translation URL...
+  if (!url)
+  {
+    sfPuts(stderr, SFSTR("stringsutil: You must specify a LibreTranslate server with the '-t' option or the LIBRETRANSLATE_URL environment variable."));
+    return (1);
+  }
+
+  if (httpSeparateURI(HTTP_URI_CODING_ALL, url, scheme, sizeof(scheme), userpass, sizeof(userpass), host, sizeof(host), &port, resource, sizeof(resource)) < HTTP_URI_STATUS_OK)
+  {
+    sfPrintf(stderr, SFSTR("stringsutil: Invalid LibreTranslate URL '%s'."), url);
+    return (1);
+  }
+
+  // Validate the language code...
+  if (!language)
+  {
+    sfPuts(stderr, SFSTR("stringsutil: You must specify a language code with the '-t' option."));
+    return (1);
+  }
+
+  // Load the base localization...
+  base_sf = sfNew();
+  if (!sfLoadFromFile(base_sf, filename))
+  {
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to translate from '%s': %s"), filename, sfGetError(base_sf));
+    sfDelete(base_sf);
+    return (1);
+  }
+
+  // Setup the JSON request values...
+  if (apikey)
+    num_request = cupsAddOption("api_key", apikey, num_request, &request);
+  num_request = cupsAddOption("format", "text", num_request, &request);
+  num_request = cupsAddOption("source", "en", num_request, &request);
+  num_request = cupsAddOption("target", language, num_request, &request);
+
+  // Connect to the server...
+  if (!strcmp(scheme, "https") || port == 443)
+    encryption = HTTP_ENCRYPTION_ALWAYS;
+  else
+    encryption = HTTP_ENCRYPTION_IF_REQUESTED;
+
+  if ((http = httpConnect2(host, port, NULL, AF_UNSPEC, encryption, 1, 30000, NULL)) == NULL)
+  {
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to connect to '%s': %s"), url, cupsLastErrorString());
+    cupsFreeOptions(num_request, request);
+    sfDelete(base_sf);
+    return (1);
+  }
+
+  // Loop through the strings...
+  for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
+  {
+    // See if this string needs to be localized...
+    if ((base_text = sfGetString(base_sf, pair->key)) == NULL)
+    {
+      sfPrintf(stderr, SFSTR("stringsutil: Ignoring old string '%s'..."), pair->key);
+      continue;
+    }
+
+    if (strcmp(base_text, pair->text))
+      continue;
+
+    // Try translating it...
+    sfPrintf(stdout, SFSTR("stringsutil: Translating '%s'..."), pair->key);
+
+    num_request = cupsAddOption("q", pair->text, num_request, &request);
+
+    request_json = encode_json(num_request, request);
+    request_len  = strlen(request_json);
+
+    httpSetField(http, HTTP_FIELD_CONTENT_TYPE, "application/json");
+    httpSetLength(http, request_len);
+    if (httpPost(http, "/translate"))
+    {
+      if (httpReconnect2(http, 30000, NULL))
+      {
+	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsLastErrorString());
+	free(request_json);
+	break;
+      }
+      else if (httpPost(http, "/translate"))
+      {
+	sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsLastErrorString());
+	free(request_json);
+	break;
+      }
+    }
+
+    if (httpWrite2(http, request_json, request_len) < (ssize_t)request_len)
+    {
+      sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsLastErrorString());
+      free(request_json);
+      break;
+    }
+
+    free(request_json);
+
+    // Wait for the response...
+    while ((status = httpUpdate(http)) == HTTP_STATUS_CONTINUE)
+      ;
+
+    state = httpGetState(http);
+    if ((response_len = httpGetLength2(http)) == 0 || response_len > (sizeof(response_json) - 1))
+      response_len = sizeof(response_len) - 1;
+
+    for (response_ptr = response_json; response_ptr < (response_json + sizeof(response_json) - 1); response_ptr += response_bytes, response_len -= (size_t)response_bytes)
+    {
+      if ((response_bytes = httpRead2(http, response_ptr, response_len)) <= 0)
+        break;
+    }
+    *response_ptr = '\0';
+
+    if (httpGetState(http) == state)
+      httpFlush(http);			// Flush any remaining data...
+
+    // Decode the response...
+    num_response = decode_json(response_json, &response);
+    if ((value = cupsGetOption("text", num_response, response)) != NULL && *value)
+    {
+      // Translated, replace the localized text...
+      free(pair->text);
+      pair->text = strdup(value);
+      changes ++;
+    }
+    else
+    {
+      // Not translated, show error...
+      value = cupsGetOption("error", num_response, response);
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to translate '%s': %s"), pair->key, value ? value : "???");
+    }
+
+    cupsFreeOptions(num_response, response);
+  }
+
+  // Cleanup...
+  sfPrintf(stdout, SFSTR("stringsutil: Translated %d string(s)."), changes);
+
+  if (changes > 0)
+    write_strings(sf, sfname);
+
+  cupsFreeOptions(num_request, request);
+  sfDelete(base_sf);
+  httpClose(http);
+
+  return (0);
 }
 
 
