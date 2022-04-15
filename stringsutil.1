@@ -61,6 +61,21 @@ stringsutil \- manipulate .strings files for localization
 .I FUNCTION-NAME
 .B scan
 .I SOURCE.{c,cc,cpp,cxx,h} ...
+.br
+
+.B stringsutil
+.B \-f
+.I DESTINATION.strings
+.B \-l
+.I LOCALE
+[
+.B \-A
+.I API-KEY
+]
+.B \-T
+.I URL
+.B translate
+.I BASE.strings
 
 .SH DESCRIPTION
 .B stringsutil
@@ -73,9 +88,11 @@ sub-command imports localization strings from a GNU gettext ".po" file or anothe
 .B merge
 sub-command merges new localization string from another (base) ".strings" file, the
 .B report
-sub-command produces a localization status report, and the
+sub-command produces a localization status report, the
 .B scan
-sub-command scans C/C++ source and header files for localizable strings.
+sub-command scans C/C++ source and header files for localizable strings, and the
+.B translate
+sub-command does a first-pass machine translation using a LibreTranslate service.
 
 .SH OPTIONS
 The following options are recognized by
@@ -87,6 +104,16 @@ Shows program help.
 .B \-\-version
 Shows the program version.
 .TP 5
+\fB\-A \fIAPI-KEY\fR
+Specifies the API key string for the LibreTranslate service when using the
+.B translate
+sub-command.
+.TP 5
+\fB\-T \fIURL\fR
+Specifies the URL for the LibreTranslate service when using the
+.B translate
+sub-command.
+.TP 5
 .B \-a
 When importing messages, adds any new messages to the destination strings file.
 .TP 5
@@ -95,6 +122,11 @@ When merging messages, cleans (removes) any old messages from the destination st
 .TP 5
 \fB\-f \fIFILENAME.strings\fR
 Specifies the destination or base ".strings" localization file for the sub-command.
+.TP 5
+\fB\-l \fILOCALE\fR
+Specifies the target language code/locale name for translation using the
+.B translate
+sub-command.
 .TP 5
 \fB\-n \fIFUNCTION-NAME\fR
 When scanning source files, specifies the function or macro name that is used to identify localizable strings.
@@ -139,8 +171,18 @@ Merge those changes into the "es.strings" file:
     stringsutil -f es.strings -c merge base.strings
 .fi
 
+Do a machine translation of the "es.strings" file using a local Docker instance of LibreTranslate:
+.nf
+
+    stringsutil -f es.strings -l es -T http://localhost:5000 translate base.strings
+.fi
+
 .SH SEE ALSO
 .BR libsf (3)
+.br
+LibreTranslate (https://libretranslate.com)
+.br
+StringsUtil (https://www.msweet.org/stringsutil)
 
 .SH COPYRIGHT
 Copyright \[co] 2022 by Michael R Sweet

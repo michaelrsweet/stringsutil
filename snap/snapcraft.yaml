@@ -13,7 +13,8 @@ description: |
   - Tools for exporting, importing, and merging localization files.
   - Tool for reporting on the quality of a localization.
   - Tool for scanning C/C++ source files for localization strings.
-  - Tool for doing a first pass machine translation.
+  - Tool for doing a first pass machine translation using the LibreTranslate
+    service/software.
 
 confinement: strict
 

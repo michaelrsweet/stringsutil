@@ -19,7 +19,8 @@ embeddable, and more flexible alternative to GNU gettext.  Key features include:
 - Tools for exporting, importing, and merging localization files.
 - Tool for reporting on the quality of a localization.
 - Tool for scanning C/C++ source files for localization strings.
-- *Coming Soon*: Tool for doing a first pass machine translation.
+- Tool for doing a first pass machine translation using the LibreTranslate
+  service/software.
 
 
 Requirements
@@ -81,6 +82,17 @@ When you have made source changes that affect the localization strings, use the
 Then add those changes to the "es.strings" file with the "merge" sub-command:
 
     stringsutil -f es.strings -c merge base.strings
+
+The "translate" sub-command uses a LibreTranslate service to do a first-pass
+machine translation of your strings.  For example, the following command will
+use a local Docker instance of LibreTranslate:
+
+    stringsutil -f es.strings -l es -T http://localhost:5000 translate base.strings
+
+You also use the "export" command to produce a C header file containing a
+strings file that can be embedded in a program:
+
+    stringsutil -f es.strings export es_strings.h
 
 
 Legal Stuff
