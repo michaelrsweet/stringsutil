@@ -1,0 +1,5 @@
+Name: libsf
+Description: StringsUtil library
+URL: https://www.msweet.org/stringsutil
+Libs: -L${prefix}/lib -lsf -lpthread
+Cflags: -I${prefix}/include

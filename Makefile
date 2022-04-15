@@ -10,11 +10,12 @@
 #
 
 VERSION	=	1.0
-prefix	=	$(DESTDIR)/usr/local
+prefix	=	/usr/local
 includedir =	$(prefix)/include
 bindir	=	$(prefix)/bin
 libdir	=	$(prefix)/lib
 mandir	=	$(prefix)/share/man
+DESTDIR	=	$(DSTROOT)
 
 AR	=	ar
 ARFLAGS	=	crv
@@ -25,7 +26,7 @@ DOCFLAGS =	--author "Michael R Sweet" \
 		--copyright "Copyright (c) 2022 by Michael R Sweet" \
 		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
-LIBS	=	`cups-config --libs`
+LIBS	=	`cups-config --libs` -lpthread
 OBJS	=	sf.o stringsutil.o
 OPTIM	=	-Os -g
 RANLIB	=	ranlib
@@ -38,12 +39,7 @@ TARGETS	=	libsf.a stringsutil
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-all:
-	if test `uname` = Linux; then \
-		$(MAKE) LIBS="$(LIBS) -lpthread" $(TARGETS); \
-	else \
-		$(MAKE) $(TARGETS); \
-	fi
+all:		$(TARGETS)
 
 
 clean:
@@ -51,21 +47,26 @@ clean:
 
 
 install:	all
-	echo "Installing stringsutil to $(bindir)..."
-	mkdir -p $(bindir)
-	cp stringsutil $(bindir)
-	echo "Installing header to $(includedir)..."
-	mkdir -p $(includedir)
-	cp sf.h $(includedir)
-	echo "Installing library to $(libdir)..."
-	mkdir -p $(libdir)
-	cp libsf.a $(libdir)
-	$(RANLIB) $(libdir)/libsf.a
-	echo "Installing man pages to $(mandir)..."
-	mkdir -p $(mandir)/man1
-	cp stringsutil.1 $(mandir)/man1
-	mkdir -p $(mandir)/man3
-	cp libsf.3 $(mandir)/man3
+	echo "Installing stringsutil to $(DESTDIR)$(bindir)..."
+	mkdir -p $(DESTDIR)$(bindir)
+	cp stringsutil $(DESTDIR)$(bindir)
+	echo "Installing header to $(DESTDIR)$(includedir)..."
+	mkdir -p $(DESTDIR)$(includedir)
+	cp sf.h $(DESTDIR)$(includedir)
+	echo "Installing library to $(DESTDIR)$(libdir)..."
+	mkdir -p $(DESTDIR)$(libdir)
+	cp libsf.a $(DESTDIR)$(libdir)
+	$(RANLIB) $(DESTDIR)$(libdir)/libsf.a
+	echo "Installing pkg-config info to $(DESTDIR)$(libdir)/pkgconfig..."
+	mkdir -p $(DESTDIR)$(prefix)/lib/pkgconfig
+	echo 'prefix="$(prefix)"' >$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
+	echo 'Version: $(VERSION)' >>$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
+	cat libsf.pc.in >>$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
+	echo "Installing man pages to $(DESTDIR)$(mandir)..."
+	mkdir -p $(DESTDIR)$(mandir)/man1
+	cp stringsutil.1 $(DESTDIR)$(mandir)/man1
+	mkdir -p $(DESTDIR)$(mandir)/man3
+	cp libsf.3 $(DESTDIR)$(mandir)/man3
 
 
 sanitizer:
