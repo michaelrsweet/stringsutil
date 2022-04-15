@@ -29,6 +29,7 @@
 "stringsutil: File needs to be merged, %d missing and %d old string(s)." = "stringsutil: File needs to be merged, %d missing and %d old string(s).";
 "stringsutil: Ignoring old string '%s'..." = "stringsutil: Ignoring old string '%s'...";
 "stringsutil: Invalid LibreTranslate URL '%s'." = "stringsutil: Invalid LibreTranslate URL '%s'.";
+"stringsutil: Localized as '%s'." = "stringsutil: Localized as '%s'.";
 "stringsutil: No new strings." = "stringsutil: No new strings.";
 "stringsutil: No strings." = "stringsutil: No strings.";
 "stringsutil: Syntax error on line %d of '%s'." = "stringsutil: Syntax error on line %d of '%s'.";
@@ -43,8 +44,8 @@
 "stringsutil: Unable to merge '%s': %s" = "stringsutil: Unable to merge '%s': %s";
 "stringsutil: Unable to open source file '%s': %s" = "stringsutil: Unable to open source file '%s': %s";
 "stringsutil: Unable to report on '%s': %s" = "stringsutil: Unable to report on '%s': %s";
-"stringsutil: Unable to translate '%s': %s" = "stringsutil: Unable to translate '%s': %s";
 "stringsutil: Unable to translate from '%s': %s" = "stringsutil: Unable to translate from '%s': %s";
+"stringsutil: Unable to translate: %s" = "stringsutil: Unable to translate: %s";
 "stringsutil: Unknown export format for '%s'." = "stringsutil: Unknown export format for '%s'.";
 "stringsutil: Unknown import format for '%s'." = "stringsutil: Unknown import format for '%s'.";
 "stringsutil: Unknown option '%s'." = "stringsutil: Unknown option '%s'.";

@@ -1632,9 +1632,10 @@ translate_strings(sf_t       *sf,	// I - Strings
 
     // Decode the response...
     num_response = decode_json(response_json, &response);
-    if ((value = cupsGetOption("text", num_response, response)) != NULL && *value)
+    if ((value = cupsGetOption("translatedText", num_response, response)) != NULL && *value)
     {
       // Translated, replace the localized text...
+      sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
       free(pair->text);
       pair->text = strdup(value);
       changes ++;
@@ -1643,7 +1644,7 @@ translate_strings(sf_t       *sf,	// I - Strings
     {
       // Not translated, show error...
       value = cupsGetOption("error", num_response, response);
-      sfPrintf(stderr, SFSTR("stringsutil: Unable to translate '%s': %s"), pair->key, value ? value : "???");
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to translate: %s"), value ? value : "???");
     }
 
     cupsFreeOptions(num_response, response);
