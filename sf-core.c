@@ -38,7 +38,6 @@ _sfAddPair(sf_t       *sf,		// I - Localization strings
     if ((pair = realloc(sf->pairs, (sf->alloc_pairs + 32) * sizeof(_sf_pair_t))) == NULL)
     {
       _sfSetError(sf, "Unable to allocate memory for pair.");
-      _sf_rwlock_unlock(sf->rwlock);
       return (NULL);
     }
 
