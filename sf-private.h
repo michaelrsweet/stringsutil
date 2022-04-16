@@ -69,9 +69,10 @@ struct _sf_s				// Strings file
 // Functions...
 //
 
-extern bool		_sfAdd(sf_t *sf, const char *key, const char *text, const char *comment);
-extern _sf_pair_t	*_sfFind(sf_t *sf, const char *key);
-extern void		_sfRemove(sf_t *sf, size_t n);
+extern _sf_pair_t	*_sfAddPair(sf_t *sf, const char *key, const char *text, const char *comment);
+extern _sf_pair_t	*_sfFindPair(sf_t *sf, const char *key);
+extern sf_t		*_sfGetDefault(void);
+extern void		_sfRemovePair(sf_t *sf, _sf_pair_t *pair);
 extern void		_sfSetError(sf_t *sf, const char *message, ...) _SF_FORMAT(2,3);
 
 

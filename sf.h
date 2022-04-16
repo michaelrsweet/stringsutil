@@ -40,17 +40,20 @@ typedef struct _sf_s	sf_t;		// Strings file
 // Functions...
 //
 
+extern bool		sfAddString(sf_t *sf, const char *key, const char *text, const char *comment);
 extern void		sfDelete(sf_t *sf);
 extern const char	*sfFormatString(sf_t *sf, char *buffer, size_t bufsize, const char *key, ...) _SF_FORMAT(4,5);
 extern const char	*sfGetError(sf_t *sf);
 extern const char	*sfGetString(sf_t *sf, const char *key);
-extern bool		sfLoadFromFile(sf_t *sf, const char *filename);
-extern bool		sfLoadFromString(sf_t *sf, const char *data);
+extern bool		sfHasString(sf_t *sf, const char *key);
+extern bool		sfLoadFile(sf_t *sf, const char *filename);
+extern bool		sfLoadString(sf_t *sf, const char *data);
 extern sf_t		*sfNew(void);
 extern void		sfPrintf(FILE *fp, const char *message, ...);
 extern void		sfPuts(FILE *fp, const char *message);
 extern void		sfRegisterDirectory(const char *directory);
 extern void		sfRegisterString(const char *locale, const char *data);
+extern bool		sfRemoveString(sf_t *sf, const char *key);
 extern void		sfSetLocale(void);
 
 

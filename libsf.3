@@ -63,6 +63,19 @@ Once the current local is initialized, you can use the sfPrintf and sfPuts funct
 .fi
 
 .SH FUNCTIONS
+.SS sfAddString
+Add a localization string.
+.PP
+.nf
+bool  sfAddString (
+    sf_t *sf,
+    const char *key,
+    const char *text,
+    const char *comment
+);
+.fi
+.PP
+This function adds a localization string to the collection.
 .SS sfDelete
 Free a collection of localization strings.
 .PP
@@ -102,8 +115,8 @@ const char * sfGetError (
 );
 .fi
 .PP
-This function returns the last error from \fIsfLoadFromFile\fR and
-\fIsfLoadFromString\fR, if any.
+This function returns the last error from \fIsfLoadFile\fR and
+\fIsfLoadString\fR, if any.
 .SS sfGetString
 Lookup a localized string.
 .PP
@@ -120,11 +133,23 @@ If no localization exists, the key string is returned.
 The default localization strings ("sf" passed as \fBNULL\fR) are initialized
 using the \fIsfSetLocale\fR, \fIsfRegisterDirectory\fR, and
 \fIsfRegisterString\fR functions.
-.SS sfLoadFromFile
+.SS sfHasString
+Determine whether a string is localized.
+.PP
+.nf
+bool  sfHasString (
+    sf_t *sf,
+    const char *key
+);
+.fi
+.PP
+This function looks up a localization string, returning \fBtrue\fR if the string
+exists and \fBfalse\fR otherwise.
+.SS sfLoadFile
 Load a ".strings" file.
 .PP
 .nf
-bool  sfLoadFromFile (
+bool  sfLoadFile (
     sf_t *sf,
     const char *filename
 );
@@ -136,11 +161,11 @@ function.
 .PP
 When loading the strings, any existing strings in the collection are left
 unchanged.
-.SS sfLoadFromString
+.SS sfLoadString
 Load a ".strings" file from a compiled-in string.
 .PP
 .nf
-bool  sfLoadFromString (
+bool  sfLoadString (
     sf_t *sf,
     const char *data
 );
@@ -160,7 +185,7 @@ sf_t * sfNew (void);
 .fi
 .PP
 This function creates a new (empty) set of localization strings.  Use the
-\fIsfLoadFromFile\fR and/or \fIsfLoadFromString\fR functions to load
+\fIsfLoadFile\fR and/or \fIsfLoadString\fR functions to load
 localization strings.
 .SS sfPrintf
 Print a formatted localized message followed by a newline.
@@ -214,6 +239,17 @@ void sfRegisterString (
 .PP
 This function registers a ".strings" file from a compiled-in string.  You
 must call \fIsfSetLocale\fR first to initialize the current locale.
+.SS sfRemoveString
+Remove a localization string.
+.PP
+.nf
+bool  sfRemoveString (
+    sf_t *sf,
+    const char *key
+);
+.fi
+.PP
+This function removes a localization string from the collection.
 .SS sfSetLocale
 Set the current locale.
 .PP

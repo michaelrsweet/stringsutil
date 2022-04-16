@@ -1,5 +1,5 @@
 //
-// Common functions for StringsUtil.
+// Core strings file functions for StringsUtil.
 //
 // Copyright © 2022 by Michael R Sweet.
 //
@@ -9,15 +9,6 @@
 
 #include "sf-private.h"
 #include <stdarg.h>
-#include <locale.h>
-
-
-//
-// Local globals...
-//
-
-static sf_t	*sf_default = NULL;	// Default localization
-static char	sf_locale[8] = "";	// Default locale
 
 
 //
@@ -26,22 +17,21 @@ static char	sf_locale[8] = "";	// Default locale
 
 static int	sf_compare_pairs(_sf_pair_t *a, _sf_pair_t *b);
 static void	sf_free_pair(_sf_pair_t *pair);
+static void	sf_sort(sf_t *sf);
 
 
 //
-// '_sfAdd()' - Add a key/text pair...
+// '_sfAddPair()' - Add a pair to a strings file.
 //
 
-bool					// O - `true` on success, `false` on error
-_sfAdd(sf_t       *sf,			// I - Strings
-       const char *key,			// I - Key
-       const char *text,		// I - Text
-       const char *comment)		// I - Comment, if any
+_sf_pair_t *				// O - New pair or `NULL` on error
+_sfAddPair(sf_t       *sf,		// I - Localization strings
+           const char *key,		// I - Key string
+           const char *text,		// I - Text string
+           const char *comment)		// I - Comment or `NULL` for none
 {
   _sf_pair_t	*pair;			// New pair
 
-
-  _sf_rwlock_wrlock(sf->rwlock);
 
   if (sf->num_pairs >= sf->alloc_pairs)
   {
@@ -49,7 +39,7 @@ _sfAdd(sf_t       *sf,			// I - Strings
     {
       _sfSetError(sf, "Unable to allocate memory for pair.");
       _sf_rwlock_unlock(sf->rwlock);
-      return (false);
+      return (NULL);
     }
 
     sf->pairs = pair;
@@ -64,16 +54,45 @@ _sfAdd(sf_t       *sf,			// I - Strings
   if (!pair->key || !pair->text || (!pair->comment && comment && *comment))
   {
     _sfSetError(sf, "Unable to copy strings.");
-    _sf_rwlock_unlock(sf->rwlock);
-    return (false);
+    return (NULL);
   }
 
   sf->num_pairs ++;
   sf->need_sort = sf->num_pairs > 1;
 
+  return (pair);
+}
+
+
+//
+// 'sfAddString()' - Add a localization string.
+//
+// This function adds a localization string to the collection.
+//
+
+bool					// O - `true` on success, `false` on error
+sfAddString(sf_t       *sf,		// I - Strings
+	    const char *key,		// I - Key
+	    const char *text,		// I - Text
+	    const char *comment)	// I - Comment or `NULL` for none
+{
+  _sf_pair_t	*pair;			// New pair
+
+
+  // Range check input...
+  if (!sf || !key || !text)
+    return (false);
+
+  _sf_rwlock_wrlock(sf->rwlock);
+
+  pair = _sfAddPair(sf, key, text, comment);
+
+  if (sf->need_sort)
+    sf_sort(sf);
+
   _sf_rwlock_unlock(sf->rwlock);
 
-  return (true);
+  return (pair != NULL);
 }
 
 
@@ -106,39 +125,19 @@ sfDelete(sf_t *sf)			// I - Localization strings
 
 
 //
-// '_sfFind()' - Find a pair.
+// '_sfFindPair()' - Find a pair.
 //
 
 _sf_pair_t *				// O - Matching pair or `NULL`
-_sfFind(sf_t       *sf,			// I - Strings
-        const char *key)		// I - Key
+_sfFindPair(sf_t       *sf,		// I - Strings
+            const char *key)		// I - Key
 {
-  _sf_pair_t	pair,			// Search key
-		*match;			// Matching pair
+  _sf_pair_t	pair;			// Search key
 
-
-  // Sort as needed...
-  if (sf->need_sort)
-  {
-    _sf_rwlock_wrlock(sf->rwlock);
-
-    if (sf->need_sort)
-      qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs);
-
-    sf->need_sort = false;
-  }
-  else
-  {
-    _sf_rwlock_rdlock(sf->rwlock);
-  }
 
   pair.key = (char *)key;
 
-  match = (_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs);
-
-  _sf_rwlock_unlock(sf->rwlock);
-
-  return (match);
+  return ((_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs));
 }
 
 
@@ -184,8 +183,8 @@ sfFormatString(sf_t       *sf,		// I - Localization strings or `NULL` for defaul
 //
 // 'sfGetError()' - Get the last error message, if any.
 //
-// This function returns the last error from @link sfLoadFromFile@ and
-// @link sfLoadFromString@, if any.
+// This function returns the last error from @link sfLoadFile@ and
+// @link sfLoadString@, if any.
 //
 
 const char *				// O - Last error message or `NULL` for none
@@ -214,22 +213,61 @@ sfGetString(sf_t       *sf,		// I - Localization strings or `NULL` for the defau
             const char *key)		// I - Key string
 {
   _sf_pair_t	*match;			// Matching pair, if any
+  const char	*s;			// Matching string
 
 
   // Range check input...
-  if (!key || (!sf && !sf_default))
+  if (!sf)
+    sf = _sfGetDefault();
+
+  if (!key || !sf)
     return (key);
 
   // Look up the key...
-  match = _sfFind(sf ? sf : sf_default, key);
+  _sf_rwlock_rdlock(sf->rwlock);
+  if ((match = _sfFindPair(sf, key)) != NULL)
+    s = match->text;
+  else
+    s = key;
+  _sf_rwlock_unlock(sf->rwlock);
 
   // Return a string to use...
-  return (match ? match->text : key);
+  return (s);
 }
 
 
 //
-// 'sfLoadFromFile()' - Load a ".strings" file.
+// 'sfHasString()' - Determine whether a string is localized.
+//
+// This function looks up a localization string, returning `true` if the string
+// exists and `false` otherwise.
+//
+
+bool					// O - `true` if the string exists, `false` otherwise
+sfHasString(sf_t       *sf,		// I - Localization strings
+            const char *key)		// I - Key string
+{
+  _sf_pair_t	*match;			// Matching pair, if any
+
+
+  // Range check input...
+  if (!sf)
+    sf = _sfGetDefault();
+
+  if (!key || !sf)
+    return (key);
+
+  // Look up the key...
+  _sf_rwlock_rdlock(sf->rwlock);
+  match = _sfFindPair(sf, key);
+  _sf_rwlock_unlock(sf->rwlock);
+
+  return (match != NULL);
+}
+
+
+//
+// 'sfLoadFile()' - Load a ".strings" file.
 //
 // This function loads a ".strings" file.  The "sf" argument specifies a
 // collection of localization strings that was created using the @link sfNew@
@@ -240,7 +278,7 @@ sfGetString(sf_t       *sf,		// I - Localization strings or `NULL` for the defau
 //
 
 bool					// O - `true` on success, `false` on failure
-sfLoadFromFile(sf_t       *sf,		// I - Localization strings
+sfLoadFile(sf_t       *sf,		// I - Localization strings
                const char *filename)	// I - File to load
 {
   bool		ret;			// Return value
@@ -292,7 +330,7 @@ sfLoadFromFile(sf_t       *sf,		// I - Localization strings
   else if (bytes < (ssize_t)fileinfo.st_size)
   {
     // Short read, shouldn't happen but warn if it does...
-    fprintf(stderr, "sfLoadFromFile: Only read %u of %u bytes from '%s'.", (unsigned)bytes, (unsigned)fileinfo.st_size, filename);
+    fprintf(stderr, "sfLoadFile: Only read %u of %u bytes from '%s'.", (unsigned)bytes, (unsigned)fileinfo.st_size, filename);
   }
 #endif // DEBUG
 
@@ -301,7 +339,7 @@ sfLoadFromFile(sf_t       *sf,		// I - Localization strings
   data[bytes] = '\0';
 
   // Load it...
-  ret = sfLoadFromString(sf, data);
+  ret = sfLoadString(sf, data);
 
   // Free buffer and return...
   free(data);
@@ -311,7 +349,7 @@ sfLoadFromFile(sf_t       *sf,		// I - Localization strings
 
 
 //
-// 'sfLoadFromString()' - Load a ".strings" file from a compiled-in string.
+// 'sfLoadString()' - Load a ".strings" file from a compiled-in string.
 //
 // This function loads a ".strings" file from a compiled-in string.  The "sf"
 // argument specifies a collection of localization strings that was created
@@ -322,8 +360,8 @@ sfLoadFromFile(sf_t       *sf,		// I - Localization strings
 //
 
 bool					// O - `true` on success, `false` on failure
-sfLoadFromString(sf_t       *sf,	// I - Localization strings
-                 const char *data)	// I - Data to load
+sfLoadString(sf_t       *sf,		// I - Localization strings
+	     const char *data)		// I - Data to load
 {
   const char	*dataptr;		// Pointer into string data
   char		key[1024],		// Key string
@@ -332,6 +370,17 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 		*ptr;			// Pointer into strings
   int		linenum;		// Line number
 
+
+  // Range check input...
+  if (!sf || !data)
+  {
+    if (sf)
+      _sfSetError(sf, "No data.");
+
+    return (false);
+  }
+
+  _sf_rwlock_wrlock(sf->rwlock);
 
   // Scan the in-memory strings data and add key/text pairs...
   //
@@ -394,7 +443,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     {
       // Something else we don't recognize...
       _sfSetError(sf, "sfLoadString: Syntax error on line %d.", linenum);
-      return (false);
+      goto error;
     }
 
     // Parse key string...
@@ -432,7 +481,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 	else
 	{
           _sfSetError(sf, "sfLoadString: Invalid escape in key string on line %d.", linenum);
-	  return (false);
+	  goto error;
 	}
 
         if (ptr < (key + sizeof(key) - 1))
@@ -447,7 +496,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     if (!*dataptr)
     {
       _sfSetError(sf, "sfLoadString: Unterminated key string on line %d.", linenum);
-      return (false);
+      goto error;
     }
 
     dataptr ++;
@@ -465,7 +514,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     if (*dataptr != '=')
     {
       _sfSetError(sf, "sfLoadString: Missing separator on line %d (saw '%c' at offset %ld).", linenum, *dataptr, dataptr - data);
-      return (false);
+      goto error;
     }
 
     dataptr ++;
@@ -480,7 +529,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     if (*dataptr != '\"')
     {
       _sfSetError(sf, "sfLoadString: Missing text string on line %d.", linenum);
-      return (false);
+      goto error;
     }
 
     // Parse text string...
@@ -518,7 +567,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 	else
 	{
           _sfSetError(sf, "sfLoadString: Invalid escape in text string on line %d.", linenum);
-	  return (false);
+	  goto error;
 	}
 
         if (ptr < (text + sizeof(text) - 1))
@@ -533,7 +582,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     if (!*dataptr)
     {
       _sfSetError(sf, "sfLoadString: Unterminated text string on line %d.", linenum);
-      return (false);
+      goto error;
     }
 
     dataptr ++;
@@ -543,15 +592,15 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
     if (*dataptr != ';')
     {
       _sfSetError(sf, "sfLoadString: Missing terminator on line %d.", linenum);
-      return (false);
+      goto error;
     }
 
     dataptr ++;
 
-    if (!_sfFind(sf, key))
+    if (!_sfFindPair(sf, key))
     {
-      if (!_sfAdd(sf, key, text, comment))
-        return (false);
+      if (!_sfAddPair(sf, key, text, comment))
+	goto error;
     }
 
     comment[0] = '\0';
@@ -559,7 +608,22 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 
   sf->error[0] = '\0';
 
+  if (sf->need_sort)
+    sf_sort(sf);
+
+  _sf_rwlock_unlock(sf->rwlock);
+
   return (true);
+
+  // If we get here there was an error..
+  error:
+
+  if (sf->need_sort)
+    sf_sort(sf);
+
+  _sf_rwlock_unlock(sf->rwlock);
+
+  return (false);
 }
 
 
@@ -567,7 +631,7 @@ sfLoadFromString(sf_t       *sf,	// I - Localization strings
 // 'sfNew()' - Create a new (empty) set of localization strings.
 //
 // This function creates a new (empty) set of localization strings.  Use the
-// @link sfLoadFromFile@ and/or @link sfLoadFromString@ functions to load
+// @link sfLoadFile@ and/or @link sfLoadString@ functions to load
 // localization strings.
 //
 
@@ -586,111 +650,47 @@ sfNew(void)
 
 
 //
-// 'sfPrintf()' - Print a formatted localized message followed by a newline.
-//
-// This function prints a formatted localized message followed by a newline to
-// the specified file, typically `stdout` or `stderr`.  You must call
-// @link sfSetLocale@ and @link sfRegisterString@ or @link sfRegisterDirectory@
-// to initialize the message catalog that is used.
+// '_sfRemovePair()' - Remove a pair from a strings file.
 //
 
 void
-sfPrintf(FILE       *fp,		// I - Output file
-         const char *message,		// I - Printf-style message
-         ...)				// I - Additional arguments as needed
+_sfRemovePair(sf_t       *sf,		// I - Localization strings
+              _sf_pair_t *pair)		// I - Pair to remove
 {
-  va_list	ap;			// Pointer to arguments
+  size_t	n = pair - sf->pairs;	// Pair index
 
 
-  va_start(ap, message);
-  vfprintf(fp, sfGetString(sf_default, message), ap);
-  putc('\n', fp);
-  va_end(ap);
-}
-
-
-//
-// 'sfPuts()' - Print a localized message followed by a newline.
-//
-// This function prints a localized message followed by a newline to the
-// specified file, typically `stdout` or `stderr`.  You must call
-// @link sfSetLocale@ and @link sfRegisterString@ or @link sfRegisterDirectory@
-// to initialize the message catalog that is used.
-//
-
-void
-sfPuts(FILE       *fp,			// I - Output file
-       const char *message)		// I - Message
-{
-  fputs(sfGetString(sf_default, message), fp);
-  putc('\n', fp);
-}
-
-
-//
-// 'sfRegisterDirectory()' - Register ".strings" files in a directory.
-//
-// This function registers ".strings" files in a directory.  You must call
-// @link sfSetLocale@ first to initialize the current locale.
-//
-
-void
-sfRegisterDirectory(
-    const char *directory)		// I - Directory of .strings files
-{
-  char	filename[1024];			// .strings filename
-
-
-  if (!sf_locale[0])
-    return;
-
-  snprintf(filename, sizeof(filename), "%s/%s.strings", directory, sf_locale);
-  if (!sfLoadFromFile(sf_default, filename))
-  {
-    snprintf(filename, sizeof(filename), "%s/%2s.strings", directory, sf_locale);
-    sfLoadFromFile(sf_default, filename);
-  }
-}
-
-
-//
-// 'sfRegisterString()' - Register a ".strings" file from a compiled-in string.
-//
-// This function registers a ".strings" file from a compiled-in string.  You
-// must call @link sfSetLocale@ first to initialize the current locale.
-//
-
-void
-sfRegisterString(const char *locale,	// I - Locale
-                 const char *data)	// I - Strings data
-{
-  if (!sf_locale[0])
-    return;
-
-  if (!strcmp(locale, sf_locale) || (strlen(locale) == 2 && !strncmp(locale, sf_locale, 2)))
-    sfLoadFromString(sf_default, data);
-}
-
-
-//
-// '_sfRemove()' - Remove a pair from a strings file.
-//
-
-void
-_sfRemove(sf_t   *sf,			// I - Localization strings
-          size_t n)			// I - Pair index
-{
   // Free memory and then squeeze array as needed...
-  _sf_rwlock_wrlock(sf->rwlock);
-
-  sf_free_pair(sf->pairs + n);
+  sf_free_pair(pair);
 
   sf->num_pairs --;
 
   if (n < sf->num_pairs)
     memmove(sf->pairs + n, sf->pairs + n + 1, (sf->num_pairs - n) * sizeof(_sf_pair_t));
+}
+
+
+//
+// 'sfRemoveString()' - Remove a localization string.
+//
+// This function removes a localization string from the collection.
+//
+
+bool					// O - 'true` on success, `false` on error
+sfRemoveString(sf_t       *sf,		// I - Strings
+               const char *key)		// I - Key
+{
+  _sf_pair_t	*pair;			// Matching pair
+
+
+  _sf_rwlock_wrlock(sf->rwlock);
+
+  if ((pair = _sfFindPair(sf, key)) != NULL)
+    _sfRemovePair(sf, pair);
 
   _sf_rwlock_unlock(sf->rwlock);
+
+  return (pair != NULL);
 }
 
 
@@ -709,47 +709,6 @@ _sfSetError(sf_t       *sf,		// I - Localization strings
   va_start(ap, message);
   vsnprintf(sf->error, sizeof(sf->error), message, ap);
   va_end(ap);
-}
-
-
-//
-// 'sfSetLocale()' - Set the current locale.
-//
-// This function calls `setlocale` to initialize the current locale based on
-// the current user session, and then creates an empty message catalog that is
-// filled by calls to @link sfRegisterDirectory@ and/or @link sfRegisterString@.
-//
-
-void
-sfSetLocale(void)
-{
-  const char	*locale,		// Current locale
-		*charset;		// Character set in sf_locale
-  char		*ptr;			// Pointer into locale name
-
-
-  // Only initialize once...
-  if (sf_default)
-    return;
-
-  // Create an empty strings file object...
-  sf_default = sfNew();
-
-  // Set the current locale...
-  if ((locale = setlocale(LC_ALL, "")) == NULL || !strcmp(locale, "C") || !strncmp(locale, "C/", 2))
-    locale = "en";
-
-  // If the locale name has a character set specified and it is not UTF-8, then
-  // just output plain English...
-  if ((charset = strchr(locale, '.')) != NULL && strcmp(charset, ".UTF-8"))
-    locale = "en";
-
-  // Save the locale name minus the character set...
-  strncpy(sf_locale, locale, sizeof(sf_locale) - 1);
-  sf_locale[sizeof(sf_locale) - 1] = '\0';
-
-  if ((ptr = strchr(sf_locale, '.')) != NULL)
-    *ptr = '\0';
 }
 
 
@@ -776,3 +735,16 @@ sf_free_pair(_sf_pair_t *pair)		// I - Pair
   free(pair->text);
   free(pair->comment);
 }
+
+
+//
+// 'sf_sort()' - Sort the strings.
+//
+
+static void
+sf_sort(sf_t *sf)			// I - Localization strings
+{
+  qsort(sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs);
+  sf->need_sort = false;
+}
+

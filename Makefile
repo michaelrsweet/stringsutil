@@ -26,8 +26,9 @@ DOCFLAGS =	--author "Michael R Sweet" \
 		--copyright "Copyright (c) 2022 by Michael R Sweet" \
 		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
+LIBOBJS	=	sf-core.o sf-simple.o
 LIBS	=	`cups-config --libs` -lpthread
-OBJS	=	sf.o stringsutil.o
+OBJS	=	$(LIBOBJS) stringsutil.o
 OPTIM	=	-Os -g
 RANLIB	=	ranlib
 TARGETS	=	libsf.a stringsutil
@@ -93,9 +94,10 @@ stringsutil:	stringsutil.o libsf.a
 	echo "Linking $@..."
 	$(CC) $(LDFLAGS) -o stringsutil stringsutil.o libsf.a $(LIBS)
 
-libsf.a:	sf.o
+libsf.a:	$(LIBOBJS)
 	echo "Archiving $@..."
-	$(AR) $(ARFLAGS) $@ sf.o
+	rm -f $@
+	$(AR) $(ARFLAGS) $@ $(LIBOBJS)
 	$(RANLIB) $@
 
 test:		all
@@ -227,7 +229,7 @@ update2:	stringsutil
 # Make documentation
 doc:
 	echo Generating stringsutil.html...
-	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml sf.[ch] >stringsutil.html
+	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml sf.h $(LIBOBJS:.o=.c) >stringsutil.html
 	echo Generating libsf.3...
 	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 --body libsf.md stringsutil.xml >libsf.3
 	rm -f stringsutil.xml

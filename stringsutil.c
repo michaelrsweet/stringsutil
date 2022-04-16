@@ -139,7 +139,7 @@ main(int  argc,				// I - Number of command-line arguments
               sf     = sfNew();
               sfname = argv[i];
 
-              if (!sfLoadFromFile(sf, argv[i]) && errno != ENOENT)
+              if (!sfLoadFile(sf, argv[i]) && errno != ENOENT)
               {
                 sfPrintf(stderr, SFSTR("stringsutil: Unable to load '%s': %s"), argv[i], sfGetError(sf));
                 return (1);
@@ -808,7 +808,7 @@ import_string(sf_t *sf,			// I  - Strings
   if (*msgid && *msgstr)
   {
     // See if this is an existing string...
-    if ((match = _sfFind(sf, msgid)) != NULL)
+    if ((match = _sfFindPair(sf, msgid)) != NULL)
     {
       // Found a match...
       if (strcmp(match->text, msgstr))
@@ -823,7 +823,7 @@ import_string(sf_t *sf,			// I  - Strings
     else if (addnew)
     {
       // Add new string...
-      _sfAdd(sf, msgid, msgstr, comment);
+      sfAddString(sf, msgid, msgstr, comment);
       (*added) ++;
       clear = true;
     }
@@ -1028,7 +1028,7 @@ import_strings(sf_t       *sf,		// I - Strings
     size_t	count;			// Number of pairs
 
     isf = sfNew();
-    if (!sfLoadFromFile(isf, filename))
+    if (!sfLoadFile(isf, filename))
     {
       sfPrintf(stderr, SFSTR("stringsutil: Unable to import '%s': %s"), filename, sfGetError(isf));
       sfDelete(isf);
@@ -1037,7 +1037,7 @@ import_strings(sf_t       *sf,		// I - Strings
 
     for (count = isf->num_pairs, ipair = isf->pairs; count > 0; count --, ipair ++)
     {
-      if ((pair = _sfFind(sf, ipair->key)) != NULL)
+      if ((pair = _sfFindPair(sf, ipair->key)) != NULL)
       {
         // Existing string, check for differences...
         if (strcmp(pair->text, ipair->text))
@@ -1051,7 +1051,7 @@ import_strings(sf_t       *sf,		// I - Strings
       else if (addnew)
       {
         // Add new string...
-        _sfAdd(sf, ipair->key, ipair->text, ipair->comment);
+        sfAddString(sf, ipair->key, ipair->text, ipair->comment);
         added ++;
       }
       else
@@ -1187,7 +1187,7 @@ merge_strings(sf_t       *sf,		// I - Strings
 
   // Open the merge file...
   msf = sfNew();
-  if (!sfLoadFromFile(msf, filename))
+  if (!sfLoadFile(msf, filename))
   {
     sfPrintf(stderr, SFSTR("stringsutil: Unable to merge '%s': %s"), filename, sfGetError(msf));
     sfDelete(msf);
@@ -1197,11 +1197,11 @@ merge_strings(sf_t       *sf,		// I - Strings
   // Loop through the merge list and add any new strings...
   for (count = msf->num_pairs, mpair = msf->pairs; count > 0; count --, mpair ++)
   {
-    if (_sfFind(sf, mpair->key))
+    if (_sfFindPair(sf, mpair->key))
       continue;
 
     added ++;
-    _sfAdd(sf, mpair->key, mpair->text, mpair->comment);
+    sfAddString(sf, mpair->key, mpair->text, mpair->comment);
   }
 
   // Then clean old messages (if needed)...
@@ -1209,12 +1209,12 @@ merge_strings(sf_t       *sf,		// I - Strings
   {
     for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
     {
-      if (_sfFind(msf, pair->key))
+      if (_sfFindPair(msf, pair->key))
 	continue;
 
       removed ++;
 
-      _sfRemove(sf, pair - sf->pairs);
+      _sfRemovePair(sf, pair);
 
       pair --;
       count --;
@@ -1258,7 +1258,7 @@ report_strings(sf_t       *sf,		// I - Strings
 
   // Open the report file...
   rsf = sfNew();
-  if (!sfLoadFromFile(rsf, filename))
+  if (!sfLoadFile(rsf, filename))
   {
     sfPrintf(stderr, SFSTR("stringsutil: Unable to report on '%s': %s"), filename, sfGetError(rsf));
     sfDelete(rsf);
@@ -1268,7 +1268,7 @@ report_strings(sf_t       *sf,		// I - Strings
   // Loop through the report list and check strings...
   for (count = rsf->num_pairs, rpair = rsf->pairs; count > 0; count --, rpair ++)
   {
-    if ((pair = _sfFind(sf, rpair->key)) == NULL)
+    if ((pair = _sfFindPair(sf, rpair->key)) == NULL)
     {
       old ++;
       continue;
@@ -1289,7 +1289,7 @@ report_strings(sf_t       *sf,		// I - Strings
   // Then look for new messages that haven't been merged...
   for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
   {
-    if (_sfFind(rsf, pair->key))
+    if (_sfFindPair(rsf, pair->key))
       continue;
 
     missing ++;
@@ -1444,10 +1444,10 @@ scan_files(sf_t       *sf,		// I - Strings
         continue;
 
       // Check whether the pair already exists...
-      if (!_sfFind(sf, text))
+      if (!_sfFindPair(sf, text))
       {
         // No, add it!
-        _sfAdd(sf, text, text, comment[0] ? comment : NULL);
+        sfAddString(sf, text, text, comment[0] ? comment : NULL);
         changes ++;
       }
     }
@@ -1536,7 +1536,7 @@ translate_strings(sf_t       *sf,	// I - Strings
 
   // Load the base localization...
   base_sf = sfNew();
-  if (!sfLoadFromFile(base_sf, filename))
+  if (!sfLoadFile(base_sf, filename))
   {
     sfPrintf(stderr, SFSTR("stringsutil: Unable to translate from '%s': %s"), filename, sfGetError(base_sf));
     sfDelete(base_sf);
