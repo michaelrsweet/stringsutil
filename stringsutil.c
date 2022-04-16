@@ -590,7 +590,9 @@ encode_json(
 
       if (vars->value[0] == '-' || isdigit(vars->value[0] & 255))
       {
-	for (valptr = vars->value + 1; *valptr && (isdigit(*valptr & 255) || *valptr == '.'); valptr ++);
+	valptr = vars->value + 1;
+	while (*valptr && (isdigit(*valptr & 255) || *valptr == '.'))
+	  valptr ++;
 
 	if (*valptr == 'e' || *valptr == 'E' || !*valptr)
 	  is_number = 1;
@@ -1505,7 +1507,6 @@ translate_strings(sf_t       *sf,	// I - Strings
 		response_len;		// Response length
   ssize_t	response_bytes;		// Size of JSON response
   const char	*value;			// Response value
-  http_status_t	status;			// HTTP response status
   http_state_t	state;			// Current HTTP state
   sf_t		*base_sf;		// Base strings
   const char	*base_text;		// Base localized text
@@ -1613,7 +1614,7 @@ translate_strings(sf_t       *sf,	// I - Strings
     free(request_json);
 
     // Wait for the response...
-    while ((status = httpUpdate(http)) == HTTP_STATUS_CONTINUE)
+    while (httpUpdate(http) == HTTP_STATUS_CONTINUE)
       ;
 
     state = httpGetState(http);
