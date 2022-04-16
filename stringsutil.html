@@ -343,10 +343,10 @@ stringsutil -f es.strings import es.po
 <pre><code class="language-c"><span class="directive">#include &lt;sf.h&gt;</span>
 </code></pre>
 <p>Use the <code>pkg-config</code> command to get the proper compiler and linker options:</p>
-<pre><code>CFLAGS = `pkgconfig --cflags libsf`
-LIBS = `pkgconfig --libs libsf`
+<pre><code>CFLAGS = `pkg-config --cflags libsf`
+LIBS = `pkg-config --libs libsf`
 
-cc -o myprogram `pkgconfig --cflags libsf` myprogram.c `pkgconfig --libs libsf`
+cc -o myprogram `pkg-config --cflags libsf` myprogram.c `pkg-config --libs libsf`
 </code></pre>
 <p>A typical program will either have a directory containing &quot;.strings&quot; files installed on disk or a collection of header files containing &quot;.strings&quot; files as constant C strings. Call <a href="#sfSetLocale"><code>sfSetLocale</code></a> to initialize the current locale and then <a href="#sfRegisterDirectory"><code>sfRegisterDirectory</code></a> or <a href="#sfRegisterString"><code>sfRegisterString</code></a> to initialize the default localization strings:</p>
 <pre><code class="language-c"><span class="comment">// &quot;.strings&quot; files in &quot;/usr/local/share/myapp/strings&quot;...</span>

@@ -10,10 +10,10 @@ The `libsf` library has a single header file:
 Use the `pkg-config` command to get the proper compiler and linker options:
 
 ```
-CFLAGS = `pkgconfig --cflags libsf`
-LIBS = `pkgconfig --libs libsf`
+CFLAGS = `pkg-config --cflags libsf`
+LIBS = `pkg-config --libs libsf`
 
-cc -o myprogram `pkgconfig --cflags libsf` myprogram.c `pkgconfig --libs libsf`
+cc -o myprogram `pkg-config --cflags libsf` myprogram.c `pkg-config --libs libsf`
 ```
 
 A typical program will either have a directory containing ".strings" files
