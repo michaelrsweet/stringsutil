@@ -738,15 +738,22 @@ export_strings(sf_t       *sf,		// I - Strings
 
   if (code)
   {
+    const char *sfbase;			// Base name of strings filename...
+
+    if ((sfbase = strrchr(sfname, '/')) != NULL)
+      sfbase ++;
+    else
+      sfbase = sfname;
+
     fputs("static const char *", fp);
-    while (*sfname)
+    while (*sfbase)
     {
-      if (isalnum(*sfname & 255))
-        putc(*sfname, fp);
+      if (isalnum(*sfbase & 255))
+        putc(*sfbase, fp);
       else
         putc('_', fp);
 
-      sfname ++;
+      sfbase ++;
     }
     fputs(" = ", fp);
   }

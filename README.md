@@ -95,6 +95,13 @@ strings file that can be embedded in a program:
     stringsutil -f es.strings export es_strings.h
 
 
+Changes in v1.1
+---------------
+
+- When exporting a C header/source file, the variable name no longer includes
+  directory information.
+
+
 Legal Stuff
 -----------
 
