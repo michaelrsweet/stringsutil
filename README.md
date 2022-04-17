@@ -100,6 +100,7 @@ Changes in v1.1
 
 - When exporting a C header/source file, the variable name no longer includes
   directory information.
+- Fixed decoding of JSON Unicode escapes ("\uXXXX").
 
 
 Legal Stuff

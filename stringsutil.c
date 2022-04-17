@@ -536,9 +536,45 @@ decode_string(const char *data,         // I - Pointer into data string
 	    *buffer = '\0';
 	    return (NULL);
       }
-    }
 
-    if (ch && ptr < end)
+      if (ch < 0x80)
+      {
+        // ASCII
+        if (ptr < end)
+          *ptr++ = (char)ch;
+      }
+      else if (ch < 0x400)
+      {
+        // 2-byte UTF-8
+        if (ptr < (end - 1))
+        {
+          *ptr++ = (char)(0xc0 | (ch >> 6));
+          *ptr++ = (char)(0x80 | (ch & 0x3f));
+        }
+      }
+      else if (ch < 0x10000)
+      {
+        // 3-byte UTF-8
+        if (ptr < (end - 2))
+        {
+          *ptr++ = (char)(0xe0 | (ch >> 12));
+          *ptr++ = (char)(0x80 | ((ch >> 6) & 0x3f));
+          *ptr++ = (char)(0x80 | (ch & 0x3f));
+        }
+      }
+      else
+      {
+        // 4-byte UTF-8
+        if (ptr < (end - 3))
+        {
+          *ptr++ = (char)(0xf0 | (ch >> 18));
+          *ptr++ = (char)(0x80 | ((ch >> 12) & 0x3f));
+          *ptr++ = (char)(0x80 | ((ch >> 6) & 0x3f));
+          *ptr++ = (char)(0x80 | (ch & 0x3f));
+        }
+      }
+    }
+    else if (ch && ptr < end)
       *ptr++ = (char)ch;
   }
 

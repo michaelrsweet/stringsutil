@@ -51,6 +51,9 @@ install:	all
 	echo "Installing stringsutil to $(DESTDIR)$(bindir)..."
 	mkdir -p $(DESTDIR)$(bindir)
 	cp stringsutil $(DESTDIR)$(bindir)
+	if test `uname` = Darwin; then \
+		codesign -s - $(DESTDIR)$(bindir)/stringsutil; \
+	fi
 	echo "Installing header to $(DESTDIR)$(includedir)..."
 	mkdir -p $(DESTDIR)$(includedir)
 	cp sf.h $(DESTDIR)$(includedir)
