@@ -1760,7 +1760,7 @@ write_string(FILE       *fp,		// I - Output file
     if (*s == '\\')
       fprintf(fp, "%s%s", escape, escape);
     else if (*s == '\"')
-      fprintf(fp, "%s\"", escape);
+      fprintf(fp, "%s%s\"", escape, code ? "\\" : "");
     else if (*s == '\n')
       fprintf(fp, "%sn", escape);
     else if (*s == '\r')
