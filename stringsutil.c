@@ -528,6 +528,8 @@ decode_string(const char *data,         // I - Pointer into data string
                 ch |= tolower(data[3]) - 'a' + 10;
 	      else
 	        ch |= data[3] - '0';
+
+              data += 3;
               break;
             }
 
@@ -1556,6 +1558,10 @@ translate_strings(sf_t       *sf,	// I - Strings
   _sf_pair_t	*pair;			// Current pair
   size_t	count;			// Number of pairs remaining
   int		changes = 0;		// Did we change any strings?
+  int		num_formats;		// Number of format specifiers
+  const char	*formats[100];		// Format specifiers
+  char		text[2048],		// Current text string
+		*textptr;		// Pointer into text string
 
 
   // Validate the translation URL...
@@ -1624,7 +1630,51 @@ translate_strings(sf_t       *sf,	// I - Strings
     // Try translating it...
     sfPrintf(stdout, SFSTR("stringsutil: Translating '%s'..."), pair->key);
 
-    num_request = cupsAddOption("q", pair->text, num_request, &request);
+    num_formats = 0;
+
+    if ((value = strchr(pair->text, '%')) != NULL)
+    {
+      // Convert % formats to _F#_ to avoid translation
+      for (value = pair->text, textptr = text; *value;)
+      {
+        // Copy non-format text...
+        while (*value && *value != '%' && textptr < (text + sizeof(text) - 1))
+	  *textptr++ = *value++;
+
+        if (!*value)
+          break;
+
+        // Replace % with _F#_...
+	snprintf(textptr, sizeof(text) - (textptr - text), " _F%d ", num_formats);
+	textptr += strlen(textptr);
+
+	formats[num_formats ++] = value;
+	if (num_formats >= 100)
+	  break;
+
+        // Skip format specifier...
+	for (value ++; *value; value ++)
+	{
+	  if (strchr("aAcCdDeEfFgGinoOpsSuUxX%", *value))
+	    break;
+	}
+
+	if (*value)
+	  value ++;
+	else
+	  break;
+      }
+
+      *textptr = '\0';
+
+      // Add reformatted text...
+      num_request = cupsAddOption("q", text, num_request, &request);
+    }
+    else
+    {
+      // No format strings...
+      num_request = cupsAddOption("q", pair->text, num_request, &request);
+    }
 
     request_json = encode_json(num_request, request);
     request_len  = strlen(request_json);
@@ -1679,6 +1729,39 @@ translate_strings(sf_t       *sf,	// I - Strings
     if ((value = cupsGetOption("translatedText", num_response, response)) != NULL && *value)
     {
       // Translated, replace the localized text...
+      if (num_formats > 0)
+      {
+        // Replace format strings...
+	long		n;		// Format index
+	const char	*fmtptr;	// Pointer into format string
+
+        for (textptr = text; *value && textptr < (text + sizeof(text) - 1);)
+        {
+          if (!strncmp(value, "_F", 2) && isdigit(value[2] & 255))
+          {
+            if ((n = strtol(value + 2, (char **)&value, 10)) < num_formats)
+            {
+              *textptr++ = '%';
+
+              for (fmtptr = formats[n] + 1; *fmtptr && textptr < (text + sizeof(text) - 1); fmtptr ++)
+              {
+                *textptr++ = *fmtptr;
+		if (strchr("aAcCdDeEfFgGinoOpsSuUxX%", *fmtptr))
+		  break;
+              }
+            }
+
+            if (!*value)
+              break;
+          }
+          else
+	    *textptr++ = *value++;
+        }
+
+        *textptr = '\0';
+        value    = text;
+      }
+
       sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
       free(pair->text);
       pair->text = strdup(value);

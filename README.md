@@ -102,6 +102,7 @@ Changes in v1.1
   directory information.
 - Fixed decoding of JSON Unicode escapes ("\uXXXX").
 - Fixed exporting of quotes in ".strings" files in C header/source files.
+- Now preserve formatting strings when translating.
 
 
 Legal Stuff
