@@ -1805,7 +1805,9 @@ usage(FILE *fp,				// I - Where to send usage
   sfPuts(fp, SFSTR("  -a                   Add new strings (import)."));
   sfPuts(fp, SFSTR("  -c                   Remove old strings (merge)."));
   sfPuts(fp, SFSTR("  -f FILENAME.strings  Specify strings file."));
+  sfPuts(fp, SFSTR("  -l LOCALE            Specify locale/language ID."));
   sfPuts(fp, SFSTR("  -n NAME              Specify function/macro name for localization."));
+  sfPuts(fp, SFSTR("  -t URL               Specify LibreTranslate server URL."));
   sfPuts(fp, SFSTR("  --help               Show program help."));
   sfPuts(fp, SFSTR("  --version            Show program version."));
   puts("");
@@ -1815,6 +1817,7 @@ usage(FILE *fp,				// I - Where to send usage
   sfPuts(fp, SFSTR("  merge                Merge strings from another strings file."));
   sfPuts(fp, SFSTR("  report               Report untranslated strings in the specified strings file(s)."));
   sfPuts(fp, SFSTR("  scan                 Scan C/C++ source files for strings."));
+  sfPuts(fp, SFSTR("  translate            Translate strings."));
 
   return (status);
 }
