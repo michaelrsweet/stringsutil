@@ -21,13 +21,13 @@ AR	=	ar
 ARFLAGS	=	crv
 CC	=	gcc
 CFLAGS	=	$(OPTIM) $(CPPFLAGS) -Wall
-CPPFLAGS =	'-DVERSION="$(VERSION)"' `cups-config --cflags`
+CPPFLAGS =	'-DVERSION="$(VERSION)"' `pkg-config --cflags cups`
 DOCFLAGS =	--author "Michael R Sweet" \
 		--copyright "Copyright (c) 2022 by Michael R Sweet" \
 		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
 LIBOBJS	=	sf-core.o sf-simple.o
-LIBS	=	`cups-config --libs` -lpthread
+LIBS	=	`pkg-config --libs cups` -lpthread
 OBJS	=	$(LIBOBJS) stringsutil.o
 OPTIM	=	-Os -g
 RANLIB	=	ranlib

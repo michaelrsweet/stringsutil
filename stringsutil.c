@@ -23,6 +23,37 @@
 
 
 //
+// The CUPS API is changed in CUPS v3...
+//
+
+#  if CUPS_VERSION_MAJOR < 3
+#    define cups_len_t int
+#    define cupsArrayNew cupsArrayNew3
+#    define cupsArrayGetCount (size_t)cupsArrayCount
+#    define cupsArrayGetElement(a,n) cupsArrayIndex(a,(int)n)
+#    define cupsArrayGetFirst cupsArrayFirst
+#    define cupsArrayGetLast cupsArrayLast
+#    define cupsArrayGetNext cupsArrayNext
+#    define cupsArrayGetPrev cupsArrayPrev
+#    define cupsGetUser cupsUser
+#    define httpAddrConnect httpAddrConnect2
+#    define httpConnect httpConnect2
+#    define httpDecode64 httpDecode64_2
+#    define httpEncode64 httpEncode64_2
+#    define httpGetDateString httpGetDateString2
+#    define httpRead httpRead2
+#    define httpReconnect httpReconnect2
+#    define httpStatusString httpStatus
+#    define httpWrite httpWrite2
+typedef cups_array_func_t cups_array_cb_t;
+typedef cups_acopy_func_t cups_acopy_cb_t;
+typedef cups_afree_func_t cups_afree_cb_t;
+#  else
+#    define cups_len_t size_t
+#  endif // CUPS_VERSION_MAJOR < 3
+
+
+//
 // Local functions...
 //
 
@@ -1606,7 +1637,7 @@ translate_strings(sf_t       *sf,	// I - Strings
   else
     encryption = HTTP_ENCRYPTION_IF_REQUESTED;
 
-  if ((http = httpConnect2(host, port, NULL, AF_UNSPEC, encryption, 1, 30000, NULL)) == NULL)
+  if ((http = httpConnect(host, port, NULL, AF_UNSPEC, encryption, 1, 30000, NULL)) == NULL)
   {
     sfPrintf(stderr, SFSTR("stringsutil: Unable to connect to '%s': %s"), url, cupsLastErrorString());
     cupsFreeOptions(num_request, request);
@@ -1683,7 +1714,7 @@ translate_strings(sf_t       *sf,	// I - Strings
     httpSetLength(http, request_len);
     if (httpPost(http, "/translate"))
     {
-      if (httpReconnect2(http, 30000, NULL))
+      if (httpReconnect(http, 30000, NULL))
       {
 	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsLastErrorString());
 	free(request_json);
@@ -1697,7 +1728,7 @@ translate_strings(sf_t       *sf,	// I - Strings
       }
     }
 
-    if (httpWrite2(http, request_json, request_len) < (ssize_t)request_len)
+    if (httpWrite(http, request_json, request_len) < (ssize_t)request_len)
     {
       sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsLastErrorString());
       free(request_json);
@@ -1711,12 +1742,12 @@ translate_strings(sf_t       *sf,	// I - Strings
       ;
 
     state = httpGetState(http);
-    if ((response_len = httpGetLength2(http)) == 0 || response_len > (sizeof(response_json) - 1))
+    if ((response_len = httpGetLength(http)) == 0 || response_len > (sizeof(response_json) - 1))
       response_len = sizeof(response_len) - 1;
 
     for (response_ptr = response_json; response_ptr < (response_json + sizeof(response_json) - 1); response_ptr += response_bytes, response_len -= (size_t)response_bytes)
     {
-      if ((response_bytes = httpRead2(http, response_ptr, response_len)) <= 0)
+      if ((response_bytes = httpRead(http, response_ptr, response_len)) <= 0)
         break;
     }
     *response_ptr = '\0';
