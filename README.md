@@ -93,20 +93,10 @@ strings file that can be embedded in a program:
     stringsutil -f es.strings export es_strings.h
 
 
-Changes in v1.1
----------------
-
-- When exporting a C header/source file, the variable name no longer includes
-  directory information.
-- Fixed decoding of JSON Unicode escapes ("\uXXXX").
-- Fixed exporting of quotes in ".strings" files in C header/source files.
-- Now preserve formatting strings when translating.
-
-
 Legal Stuff
 -----------
 
-Copyright © 2022 by Michael R Sweet.
+Copyright © 2022-2024 by Michael R Sweet.
 
 StringsUtil is licensed under the Apache License Version 2.0 with an (optional)
 exception to allow linking against GPL2/LGPL2-only software.  See the files
