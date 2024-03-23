@@ -162,22 +162,20 @@ install:	all
 	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(bindir)
 	$(INSTALL_BIN) -m 755 stringsutil $(BUILDROOT)$(bindir)
 	echo "Installing header to $(BUILDROOT)$(includedir)..."
-	mkdir -p $(BUILDROOT)$(includedir)
-	cp sf.h $(BUILDROOT)$(includedir)
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(includedir)
+	$(INSTALL_DATA) -m 644 sf.h $(BUILDROOT)$(includedir)
 	echo "Installing library to $(BUILDROOT)$(libdir)..."
-	mkdir -p $(BUILDROOT)$(libdir)
-	cp libsf.a $(BUILDROOT)$(libdir)
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(libdir)
+	$(INSTALL_BIN) -m 644 libsf.a $(BUILDROOT)$(libdir)
 	$(RANLIB) $(BUILDROOT)$(libdir)/libsf.a
 	echo "Installing pkg-config info to $(BUILDROOT)$(libdir)/pkgconfig..."
-	mkdir -p $(BUILDROOT)$(prefix)/lib/pkgconfig
-	echo 'prefix="$(prefix)"' >$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
-	echo 'Version: $(VERSION)' >>$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
-	cat libsf.pc.in >>$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(prefix)/lib/pkgconfig
+	$(INSTALL_DATA) -m 644 $(BUILDROOT)$(prefix)/lib/pkgconfig
 	echo "Installing man pages to $(DESTDIR)$(mandir)..."
-	mkdir -p $(BUILDROOT)$(mandir)/man1
-	cp stringsutil.1 $(BUILDROOT)$(mandir)/man1
-	mkdir -p $(BUILDROOT)$(mandir)/man3
-	cp libsf.3 $(BUILDROOT)$(mandir)/man3
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(mandir)/man1
+	$(INSTALL_DATA) -m 644 stringsutil.1 $(BUILDROOT)$(mandir)/man1
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(mandir)/man3
+	$(INSTALL_DATA) -m 644 libsf.3 $(BUILDROOT)$(mandir)/man3
 
 
 # Analyze code with the Clang static analyzer <https://clang-analyzer.llvm.org>
