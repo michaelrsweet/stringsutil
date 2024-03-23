@@ -3,7 +3,7 @@ StringsUtil - Strings File Library and Utility
 
 ![Version](https://img.shields.io/github/v/release/michaelrsweet/stringsutil?include_prereleases)
 ![Apache 2.0](https://img.shields.io/github/license/michaelrsweet/stringsutil)
-![Build Status](https://img.shields.io/github/workflow/status/michaelrsweet/stringsutil/build.yml)
+![Build Status](https://img.shields.io/github/actions/workflow/status/michaelrsweet/stringsutil/build.yml?branch=master)
 ![Coverity Scan Status](https://img.shields.io/coverity/scan/24835.svg)
 
 StringsUtil provides a library for using Apple ".strings" localization files and
