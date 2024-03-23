@@ -1,8 +1,12 @@
 *.o
 Makefile
+autom4te.cache
+config.log
+config.status
 test.c
 test.log
 test.po
 test.strings
 stringsutil
 libsf.a
+libsf.pc

@@ -23,7 +23,7 @@ grade: stable
 icon: stringsutil-128.png
 
 apps:
-    mmdutil:
+    stringsutil:
         command: bin/stringsutil
         plugs: [home]
 
