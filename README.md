@@ -30,9 +30,11 @@ You'll need a C compiler and the CUPS library.
 "Kicking the Tires"
 -------------------
 
-The supplied makefile allows you to build the unit tests on Linux and macOS (at
-least), which verify that all of the functions work as expected:
+StringsUtil provides a configure script that creates a makefile which allows
+you to build the unit tests on Linux and macOS (at least), which verify that all
+of the functions work as expected:
 
+    ./configure
     make test
 
 The makefile also builds the `stringsutil` program.
@@ -43,7 +45,7 @@ Installing
 
 Run:
 
-    make install
+    sudo make install
 
 to install it in `/usr/local` along with a man page.
 
