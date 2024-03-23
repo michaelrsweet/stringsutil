@@ -3,35 +3,130 @@
 #
 #     https://github.com/michaelrsweet/stringsutil
 #
-# Copyright © 2022 by Michael R Sweet.
+# Copyright © 2022-2024 by Michael R Sweet.
 #
 # Licensed under Apache License v2.0.  See the file "LICENSE" for more
 # information.
 #
 
-VERSION	=	1.0
-prefix	=	/usr/local
-includedir =	$(prefix)/include
-bindir	=	$(prefix)/bin
-libdir	=	$(prefix)/lib
-mandir	=	$(prefix)/share/man
-DESTDIR	=	$(DSTROOT)
+#
+# This is a POSIX makefile
+#
 
-AR	=	ar
-ARFLAGS	=	crv
-CC	=	gcc
-CFLAGS	=	$(OPTIM) $(CPPFLAGS) -Wall
-CPPFLAGS =	'-DVERSION="$(VERSION)"' `pkg-config --cflags cups`
+.POSIX:
+
+
+#
+# Version number...
+#
+
+VERSION	=	@VERSION@
+
+
+#
+# Programs...
+#
+
+AR		=	@AR@
+CC		=	@CC@
+INSTALL		=	@INSTALL@
+LN		=	@LN@ -sf
+MKDIR           =       @MKDIR@ -p
+RANLIB		=	@RANLIB@
+RM		=	@RM@ -f
+RMDIR		=	@RMDIR@
+SHELL		=	/bin/sh
+
+
+#
+# Installation programs...
+#
+
+INSTALL_BIN	=	$(INSTALL) -c -m 755
+INSTALL_DATA	=	$(INSTALL) -c -m 444
+INSTALL_DIR	=	$(INSTALL) -d -m 755
+INSTALL_LIB	=	$(INSTALL) -c -m 755
+INSTALL_MAN	=	$(INSTALL) -c -m 444
+
+
+#
+# Code signing...
+#
+
+CODE_SIGN	=	@CODE_SIGN@
+CODESIGN_IDENTITY =	-
+CSFLAGS		=	-s "$(CODESIGN_IDENTITY)" @CSFLAGS@ --timestamp
+
+
+#
+# Documentation (via codedoc) options...
+#
+
 DOCFLAGS =	--author "Michael R Sweet" \
-		--copyright "Copyright (c) 2022 by Michael R Sweet" \
+		--copyright "Copyright (c) 2022-2024 by Michael R Sweet" \
 		--docversion $(VERSION)
-LDFLAGS	=	$(OPTIM)
-LIBOBJS	=	sf-core.o sf-simple.o
-LIBS	=	`pkg-config --libs cups` -lpthread
-OBJS	=	$(LIBOBJS) stringsutil.o
-OPTIM	=	-Os -g
-RANLIB	=	ranlib
-TARGETS	=	libsf.a stringsutil
+
+
+#
+# Library archiver...
+#
+
+ARFLAGS		=	@ARFLAGS@
+
+
+#
+# C compiler and preprocessor...
+#
+
+CFLAGS		=	@CFLAGS@ $(CPPFLAGS) $(OPTIM) $(WARNINGS)
+CPPFLAGS	=	@CPPFLAGS@
+WARNINGS	=	@WARNINGS@
+
+
+#
+# Linker options...
+#
+
+LDFLAGS		=	@LDFLAGS@ $(OPTIM)
+LIBS		=	@LIBS@ -lm
+
+
+#
+# Optimization and architecture options for both the compiler and linker.
+#
+
+OPTIM		=	@OPTIM@
+
+
+#
+# Directories...
+#
+
+bindir		=	@bindir@
+datadir		=	@datadir@
+datarootdir	=	@datarootdir@
+docdir		=	@docdir@
+exec_prefix	=	@exec_prefix@
+includedir	=	@includedir@
+infodir		=	@infodir@
+libdir		=	@libdir@
+libexecdir	=	@libexecdir@
+localstatedir	=	@localstatedir@
+mandir		=	@mandir@
+oldincludedir	=	@oldincludedir@
+prefix		=	@prefix@
+sbindir		=	@sbindir@
+sharedstatedir	=	@sharedstatedir@
+srcdir		=	@srcdir@
+sysconfdir	=	@sysconfdir@
+top_srcdir	=	@top_srcdir@
+
+BUILDROOT	=	$(DSTROOT)$(DESTDIR)
+
+
+#
+# Rules...
+#
 
 .SILENT:
 .SUFFIXES:	.c .o
@@ -40,42 +135,49 @@ TARGETS	=	libsf.a stringsutil
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
+#
+# Targets...
+#
+
+LIBOBJS		=	\
+			sf-core.o \
+			sf-simple.o
+OBJS		=	\
+			$(LIBOBJS) \
+			stringsutil.o
+TARGETS		=	\
+			libsf.a \
+			stringsutil
+
+
 all:		$(TARGETS)
 
 
 clean:
-	rm -f $(TARGETS) $(OBJS)
+	$(RM) $(TARGETS) $(OBJS)
 
 
 install:	all
-	echo "Installing stringsutil to $(DESTDIR)$(bindir)..."
-	mkdir -p $(DESTDIR)$(bindir)
-	cp stringsutil $(DESTDIR)$(bindir)
-	if test `uname` = Darwin; then \
-		codesign -s - $(DESTDIR)$(bindir)/stringsutil; \
-	fi
-	echo "Installing header to $(DESTDIR)$(includedir)..."
-	mkdir -p $(DESTDIR)$(includedir)
-	cp sf.h $(DESTDIR)$(includedir)
-	echo "Installing library to $(DESTDIR)$(libdir)..."
-	mkdir -p $(DESTDIR)$(libdir)
-	cp libsf.a $(DESTDIR)$(libdir)
-	$(RANLIB) $(DESTDIR)$(libdir)/libsf.a
-	echo "Installing pkg-config info to $(DESTDIR)$(libdir)/pkgconfig..."
-	mkdir -p $(DESTDIR)$(prefix)/lib/pkgconfig
-	echo 'prefix="$(prefix)"' >$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
-	echo 'Version: $(VERSION)' >>$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
-	cat libsf.pc.in >>$(DESTDIR)$(prefix)/lib/pkgconfig/libsf.pc
+	echo "Installing stringsutil to $(BUILDROOT)$(bindir)..."
+	$(INSTALL_DIR) -m 755 $(BUILDROOT)$(bindir)
+	$(INSTALL_BIN) -m 755 stringsutil $(BUILDROOT)$(bindir)
+	echo "Installing header to $(BUILDROOT)$(includedir)..."
+	mkdir -p $(BUILDROOT)$(includedir)
+	cp sf.h $(BUILDROOT)$(includedir)
+	echo "Installing library to $(BUILDROOT)$(libdir)..."
+	mkdir -p $(BUILDROOT)$(libdir)
+	cp libsf.a $(BUILDROOT)$(libdir)
+	$(RANLIB) $(BUILDROOT)$(libdir)/libsf.a
+	echo "Installing pkg-config info to $(BUILDROOT)$(libdir)/pkgconfig..."
+	mkdir -p $(BUILDROOT)$(prefix)/lib/pkgconfig
+	echo 'prefix="$(prefix)"' >$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
+	echo 'Version: $(VERSION)' >>$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
+	cat libsf.pc.in >>$(BUILDROOT)$(prefix)/lib/pkgconfig/libsf.pc
 	echo "Installing man pages to $(DESTDIR)$(mandir)..."
-	mkdir -p $(DESTDIR)$(mandir)/man1
-	cp stringsutil.1 $(DESTDIR)$(mandir)/man1
-	mkdir -p $(DESTDIR)$(mandir)/man3
-	cp libsf.3 $(DESTDIR)$(mandir)/man3
-
-
-sanitizer:
-	$(MAKE) clean
-	$(MAKE) OPTIM="-g -fsanitize=address" all
+	mkdir -p $(BUILDROOT)$(mandir)/man1
+	cp stringsutil.1 $(BUILDROOT)$(mandir)/man1
+	mkdir -p $(BUILDROOT)$(mandir)/man3
+	cp libsf.3 $(BUILDROOT)$(mandir)/man3
 
 
 # Analyze code with the Clang static analyzer <https://clang-analyzer.llvm.org>
@@ -92,16 +194,19 @@ cppcheck:
 	cppcheck $(CPPFLAGS) --template=gcc --addon=cert.py --suppressions-list=.cppcheck $(OBJS:.o=.c) 2>cppcheck.log
 	test -s cppcheck.log && (echo "$(GHA_ERROR)Cppcheck detected issues."; echo ""; cat cppcheck.log; exit 1) || exit 0
 
+
 # Make various bits...
 stringsutil:	stringsutil.o libsf.a
 	echo "Linking $@..."
 	$(CC) $(LDFLAGS) -o stringsutil stringsutil.o libsf.a $(LIBS)
+
 
 libsf.a:	$(LIBOBJS)
 	echo "Archiving $@..."
 	rm -f $@
 	$(AR) $(ARFLAGS) $@ $(LIBOBJS)
 	$(RANLIB) $@
+
 
 test:		all
 	rm -f test.strings
@@ -229,7 +334,10 @@ update2:	stringsutil
 	./stringsutil -f fr.strings export fr_strings.h
 
 
+#
 # Make documentation
+#
+
 doc:
 	echo Generating stringsutil.html...
 	codedoc $(DOCFLAGS) --title "StringsUtil v$(VERSION) Manual" --coverimage stringsutil-512.png --body stringsutil.md stringsutil.xml sf.h $(LIBOBJS:.o=.c) >stringsutil.html
@@ -237,6 +345,10 @@ doc:
 	codedoc $(DOCFLAGS) --title "stringsutil - libsf functions" --man libsf --section 3 --body libsf.md stringsutil.xml >libsf.3
 	rm -f stringsutil.xml
 
+
+#
+# Dependencies...
+#
 
 $(OBJS):	sf.h sf-private.h Makefile
 stringsutil.o:	es_strings.h fr_strings.h
