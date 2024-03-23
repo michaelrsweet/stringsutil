@@ -27,10 +27,7 @@
 //
 
 #if CUPS_VERSION_MAJOR < 3
-#  define CUPS_ENCODING_ISO8859_1	CUPS_ISO8859_1
-#  define CUPS_ENCODING_JIS_X0213	CUPS_JIS_X0213
 #  define cups_len_t int
-#  define cups_page_header_t cups_page_header2_t
 #  define cupsArrayNew cupsArrayNew3
 #  define cupsLangGetName(lang)	lang->language
 #  define cupsRasterReadHeader cupsRasterReadHeader2
@@ -73,7 +70,6 @@
 typedef cups_array_func_t cups_array_cb_t;
 typedef cups_acopy_func_t cups_acopy_cb_t;
 typedef cups_afree_func_t cups_afree_cb_t;
-typedef cups_raster_iocb_t cups_raster_cb_t;
 typedef ipp_copycb_t ipp_copy_cb_t;
 #  else
 #    define httpDecode64 httpDecode64_3
