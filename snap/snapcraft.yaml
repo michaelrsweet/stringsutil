@@ -38,5 +38,5 @@ parts:
         plugin: autotools
         autotools-configure-parameters: [--prefix=/]
         source: .
-        build-packages: [libcups2-dev]
+        build-packages: [libcups2-dev, pkg-config]
         stage-packages: [libcups2]
