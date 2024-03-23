@@ -13,7 +13,7 @@
 //   stringsutil export -f FILENAME.strings FILENAME.{c,cc,cpp,cxx,h,po}
 //   stringsutil import [-a] -f FILENAME.strings FILENAME.{po,strings}
 //   stringsutil report -f FILENAME.strings FILENAME-LL.strings
-//   stringsutil translate -f FILENAME.strings -l LOCALE [-t URL]
+//   stringsutil translate -f FILENAME.strings -l LOCALE [-A API-KEY] [-T URL]
 //
 
 #include "sf-private.h"
@@ -1834,11 +1834,12 @@ usage(FILE *fp,				// I - Where to send usage
   puts("");
   sfPuts(fp, SFSTR("Options:"));
   sfPuts(fp, SFSTR("  -a                   Add new strings (import)."));
+  sfPuts(fp, SFSTR("  -A API-KEY           Specify LibreTranslate API key."));
   sfPuts(fp, SFSTR("  -c                   Remove old strings (merge)."));
   sfPuts(fp, SFSTR("  -f FILENAME.strings  Specify strings file."));
   sfPuts(fp, SFSTR("  -l LOCALE            Specify locale/language ID."));
   sfPuts(fp, SFSTR("  -n NAME              Specify function/macro name for localization."));
-  sfPuts(fp, SFSTR("  -t URL               Specify LibreTranslate server URL."));
+  sfPuts(fp, SFSTR("  -T URL               Specify LibreTranslate server URL."));
   sfPuts(fp, SFSTR("  --help               Show program help."));
   sfPuts(fp, SFSTR("  --version            Show program version."));
   puts("");
