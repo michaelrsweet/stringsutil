@@ -1,7 +1,7 @@
 //
 // Strings file utility for StringsUtil.
 //
-// Copyright © 2017-2022 by Michael R Sweet.
+// Copyright © 2022-2024 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -26,31 +26,64 @@
 // The CUPS API is changed in CUPS v3...
 //
 
-#  if CUPS_VERSION_MAJOR < 3
-#    define cups_len_t int
-#    define cupsArrayNew cupsArrayNew3
-#    define cupsArrayGetCount (size_t)cupsArrayCount
+#if CUPS_VERSION_MAJOR < 3
+#  define CUPS_ENCODING_ISO8859_1	CUPS_ISO8859_1
+#  define CUPS_ENCODING_JIS_X0213	CUPS_JIS_X0213
+#  define cups_len_t int
+#  define cups_page_header_t cups_page_header2_t
+#  define cupsArrayNew cupsArrayNew3
+#  define cupsLangGetName(lang)	lang->language
+#  define cupsRasterReadHeader cupsRasterReadHeader2
+#  define cupsRasterWriteHeader cupsRasterWriteHeader2
+#  define httpAddrConnect httpAddrConnect2
+#  define httpConnect httpConnect2
+#  define httpGetDateString httpGetDateString2
+#  define httpRead httpRead2
+#  define httpReconnect httpReconnect2
+#  define httpSetEncryption(http,e) (httpEncryption(http,e)>=0)
+#  define httpWrite httpWrite2
+#  define httpWriteResponse(http,code) (httpWriteResponse(http,code) == 0)
+#  define IPP_NUM_CAST (int)
+#  if CUPS_VERSION_MINOR < 3
+#    define HTTP_STATUS_FOUND (http_status_t)302
+#  endif // CUPS_VERSION_MINOR < 3
+#  if CUPS_VERSION_MINOR < 5
+#    define cupsArrayGetCount cupsArrayCount
 #    define cupsArrayGetElement(a,n) cupsArrayIndex(a,(int)n)
 #    define cupsArrayGetFirst cupsArrayFirst
 #    define cupsArrayGetLast cupsArrayLast
 #    define cupsArrayGetNext cupsArrayNext
 #    define cupsArrayGetPrev cupsArrayPrev
+#    define cupsCreateTempFd(prefix,suffix,buffer,bufsize) cupsTempFd(buffer,bufsize)
+#    define cupsGetError cupsLastError
+#    define cupsGetErrorString cupsLastErrorString
 #    define cupsGetUser cupsUser
-#    define httpAddrConnect httpAddrConnect2
-#    define httpConnect httpConnect2
-#    define httpDecode64 httpDecode64_2
-#    define httpEncode64 httpEncode64_2
-#    define httpGetDateString httpGetDateString2
-#    define httpRead httpRead2
-#    define httpReconnect httpReconnect2
+#    define cupsRasterGetErrorString cupsRasterErrorString
+#    define httpAddrGetFamily httpAddrFamily
+#    define httpAddrGetLength httpAddrLength
+#    define httpAddrGetString httpAddrString
+#    define httpAddrIsLocalhost httpAddrLocalhost
+#    define httpDecode64(out,outlen,in,end) httpDecode64_2(out,outlen,in)
+#    define httpEncode64(out,outlen,in,inlen,url) httpEncode64_2(out,outlen,in,inlen)
+#    define httpGetError httpError
 #    define httpStatusString httpStatus
-#    define httpWrite httpWrite2
+#    define ippGetFirstAttribute ippFirstAttribute
+#    define ippGetLength ippLength
+#    define ippGetNextAttribute ippNextAttribute
 typedef cups_array_func_t cups_array_cb_t;
 typedef cups_acopy_func_t cups_acopy_cb_t;
 typedef cups_afree_func_t cups_afree_cb_t;
+typedef cups_raster_iocb_t cups_raster_cb_t;
+typedef ipp_copycb_t ipp_copy_cb_t;
 #  else
-#    define cups_len_t size_t
-#  endif // CUPS_VERSION_MAJOR < 3
+#    define httpDecode64 httpDecode64_3
+#    define httpEncode64 httpEncode64_3
+#  endif // CUPS_VERSION_MINOR < 5
+#else
+#  define cups_len_t size_t
+#  define cups_utf8_t char
+#  define IPP_NUM_CAST (size_t)
+#endif // CUPS_VERSION_MAJOR < 3
 
 
 //
@@ -1401,8 +1434,8 @@ scan_files(sf_t       *sf,		// I - Strings
            const char *files[])		// I - Files
 {
   size_t	fnlen;			// Length of function name
-  int		i,			// Looping var
-		linenum;		// Line number in file
+  int		i;			// Looping var
+//  int		linenum;		// Line number in file
   FILE		*fp;			// Current file
   char		line[1024],		// Line from file
 		*lineptr,		// Pointer into line
@@ -1423,12 +1456,12 @@ scan_files(sf_t       *sf,		// I - Strings
       return (1);
     }
 
-    linenum = 0;
+//    linenum = 0;
 
     while (fgets(line, sizeof(line), fp))
     {
       // Look for the function invocation...
-      linenum ++;
+//      linenum ++;
 
       if ((lineptr = strstr(line, funcname)) == NULL)
         continue;
@@ -1639,7 +1672,7 @@ translate_strings(sf_t       *sf,	// I - Strings
 
   if ((http = httpConnect(host, port, NULL, AF_UNSPEC, encryption, 1, 30000, NULL)) == NULL)
   {
-    sfPrintf(stderr, SFSTR("stringsutil: Unable to connect to '%s': %s"), url, cupsLastErrorString());
+    sfPrintf(stderr, SFSTR("stringsutil: Unable to connect to '%s': %s"), url, cupsGetErrorString());
     cupsFreeOptions(num_request, request);
     sfDelete(base_sf);
     return (1);
@@ -1712,17 +1745,25 @@ translate_strings(sf_t       *sf,	// I - Strings
 
     httpSetField(http, HTTP_FIELD_CONTENT_TYPE, "application/json");
     httpSetLength(http, request_len);
+#if CUPS_VERSION_MAJOR > 2
+    if (!httpWriteRequest(http, "POST", "/translate"))
+#else
     if (httpPost(http, "/translate"))
+#endif // CUPS_VERSION_MAJOR > 2
     {
       if (httpReconnect(http, 30000, NULL))
       {
-	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsLastErrorString());
+	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
       }
+#if CUPS_VERSION_MAJOR > 2
+      else if (!httpWriteRequest(http, "POST", "/translate"))
+#else
       else if (httpPost(http, "/translate"))
+#endif // CUPS_VERSION_MAJOR > 2
       {
-	sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsLastErrorString());
+	sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
       }
@@ -1730,7 +1771,7 @@ translate_strings(sf_t       *sf,	// I - Strings
 
     if (httpWrite(http, request_json, request_len) < (ssize_t)request_len)
     {
-      sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsLastErrorString());
+      sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
       free(request_json);
       break;
     }
