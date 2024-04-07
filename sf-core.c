@@ -278,7 +278,7 @@ sfHasString(sf_t       *sf,		// I - Localization strings
 
 bool					// O - `true` on success, `false` on failure
 sfLoadFile(sf_t       *sf,		// I - Localization strings
-               const char *filename)	// I - File to load
+           const char *filename)	// I - File to load
 {
   bool		ret;			// Return value
   int		fd;			// File descriptor
