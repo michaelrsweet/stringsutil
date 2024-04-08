@@ -1729,16 +1729,20 @@ translate_strings(sf_t       *sf,	// I - Strings
     if (term_width)
     {
       int	pips;		// Progress meter pips
-      char	progress[11];	// Progress meter
+      char	message[256];	// Message string
 
       pips = 10 - 10 * count / sf->num_pairs;
+      message[0] = '[';
       if (pips > 0)
-        memset(progress, '=', pips);
+        memset(message + 1, '=', pips);
       if (pips < 10)
-        memset(progress + pips, ' ', 10 - pips);
-      progress[10] = '\0';
+        memset(message + 1 + pips, ' ', 10 - pips);
+      snprintf(message + 11, sizeof(message) - 11, "] %-243s", pair->text);
 
-      printf("\r[%s] %*s", progress, 14 - term_width, pair->text);
+      if (term_width <= sizeof(message))
+        message[term_width - 1] = '\0';
+
+      printf("\r%s", message);
       fflush(stdout);
     }
     else
@@ -1808,7 +1812,7 @@ translate_strings(sf_t       *sf,	// I - Strings
 	if (term_width)
 	  putchar('\n');
 
-	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsGetErrorString());
+	sfPrintf(stderr, SFSTR("stringsutil: Lost connection to translation server: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
       }
@@ -1821,7 +1825,7 @@ translate_strings(sf_t       *sf,	// I - Strings
 	if (term_width)
 	  putchar('\n');
 
-	sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
+	sfPrintf(stderr, SFSTR("stringsutil: Unable to send translation request: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
       }
@@ -1832,7 +1836,7 @@ translate_strings(sf_t       *sf,	// I - Strings
       if (term_width)
         putchar('\n');
 
-      sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to send translation request: %s"), cupsGetErrorString());
       free(request_json);
       break;
     }

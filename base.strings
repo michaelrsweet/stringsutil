@@ -34,6 +34,7 @@
 "stringsutil: Ignoring old string '%s'..." = "stringsutil: Ignoring old string '%s'...";
 "stringsutil: Invalid LibreTranslate URL '%s'." = "stringsutil: Invalid LibreTranslate URL '%s'.";
 "stringsutil: Localized as '%s'." = "stringsutil: Localized as '%s'.";
+"stringsutil: Lost connection to translation server: %s" = "stringsutil: Lost connection to translation server: %s";
 "stringsutil: No new strings." = "stringsutil: No new strings.";
 "stringsutil: No strings." = "stringsutil: No strings.";
 "stringsutil: Syntax error on line %d of '%s'." = "stringsutil: Syntax error on line %d of '%s'.";
@@ -51,6 +52,7 @@
 "stringsutil: Unable to merge '%s': %s" = "stringsutil: Unable to merge '%s': %s";
 "stringsutil: Unable to open source file '%s': %s" = "stringsutil: Unable to open source file '%s': %s";
 "stringsutil: Unable to report on '%s': %s" = "stringsutil: Unable to report on '%s': %s";
+"stringsutil: Unable to send translation request: %s" = "stringsutil: Unable to send translation request: %s";
 "stringsutil: Unable to translate '%s': %s" = "stringsutil: Unable to translate '%s': %s";
 "stringsutil: Unable to translate from '%s': %s" = "stringsutil: Unable to translate from '%s': %s";
 "stringsutil: Unknown export format for '%s'." = "stringsutil: Unknown export format for '%s'.";
@@ -59,5 +61,3 @@
 "stringsutil: Unknown option '-%c'." = "stringsutil: Unknown option '-%c'.";
 "stringsutil: You must specify a LibreTranslate server with the '-t' option or the LIBRETRANSLATE_URL environment variable." = "stringsutil: You must specify a LibreTranslate server with the '-t' option or the LIBRETRANSLATE_URL environment variable.";
 "stringsutil: You must specify a language code with the '-t' option." = "stringsutil: You must specify a language code with the '-t' option.";
-"stringutil: Lost connection to translation server: %s" = "stringutil: Lost connection to translation server: %s";
-"stringutil: Unable to send translation request: %s" = "stringutil: Unable to send translation request: %s";

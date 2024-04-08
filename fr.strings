@@ -35,6 +35,7 @@
 "stringsutil: Ignoring old string '%s'..." = "stringsutil: Ignorer les vieux pourcentages.";
 "stringsutil: Invalid LibreTranslate URL '%s'." = "stringsutil: Invalid LibreTranslate URL %s.";
 "stringsutil: Localized as '%s'." = "stringsutil: Localisé en %.";
+"stringsutil: Lost connection to translation server: %s" = "stringsutil: Lost connection to translation server: %s";
 "stringsutil: No new strings." = "stringsutil: Pas de nouvelles chaînes.";
 "stringsutil: No strings." = "stringsutil: Pas de chaînes.";
 "stringsutil: Syntax error on line %d of '%s'." = "stringsutil: Erreur de syntaxe sur la ligne %d de '%s'.";
@@ -52,6 +53,7 @@
 "stringsutil: Unable to merge '%s': %s" = "stringsutil: Incapable d'fusionner '%s': %s";
 "stringsutil: Unable to open source file '%s': %s" = "stringsutil: Incapable d'ouvrir le fichier source '%s': %s";
 "stringsutil: Unable to report on '%s': %s" = "stringsutil: Incapable de faire rapport '%s': %s";
+"stringsutil: Unable to send translation request: %s" = "stringsutil: Unable to send translation request: %s";
 "stringsutil: Unable to translate '%s': %s" = "stringsutil: Incapable de traduire %s: %s";
 "stringsutil: Unable to translate from '%s': %s" = "stringsutil: Incapable de traduire ‡0e0 partir de %s: %s";
 "stringsutil: Unable to translate: %s" = "stringsutil: Incapable d'traduire: %s";
