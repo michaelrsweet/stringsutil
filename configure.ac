@@ -22,7 +22,7 @@ AC_PREREQ([2.69])
 
 
 dnl Package name and version...
-AC_INIT([StringsUtil], [1.1], [https://github.com/michaelrsweet/stringsutil/issues], [stringsutil], [https://www.msweet.org/stringsutil])
+AC_INIT([StringsUtil], [1.2], [https://github.com/michaelrsweet/stringsutil/issues], [stringsutil], [https://www.msweet.org/stringsutil])
 
 VERSION="AC_PACKAGE_VERSION"
 AC_SUBST([VERSION])

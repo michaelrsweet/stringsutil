@@ -2,6 +2,12 @@ Changes in StringsUtil
 ======================
 
 
+Changes in v1.2
+---------------
+
+- Updated the output from `stringsutil translate` to better show progress.
+
+
 Changes in v1.1
 ---------------
 

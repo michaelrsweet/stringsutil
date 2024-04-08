@@ -20,6 +20,10 @@
 #include "es_strings.h"
 #include "fr_strings.h"
 #include <cups/cups.h>
+#ifndef _WIN32
+#  include <unistd.h>
+#  include <sys/ioctl.h>
+#endif // !_WIN32
 
 
 //
@@ -92,6 +96,7 @@ static const char *decode_string(const char *data, char term, char *buffer, size
 static char	*encode_json(int num_vars, cups_option_t *vars);
 static char	*encode_string(const char *s, char *bufptr, char *bufend);
 static int	export_strings(sf_t *sf, const char *sfname, const char *filename);
+static int	get_term_width(void);
 static void	import_string(sf_t *sf, char *msgid, char *msgstr, char *comment, bool addnew, int *added, int *ignored, int *modified);
 static int	import_strings(sf_t *sf, const char *sfname, const char *filename, bool addnew);
 static bool	matching_formats(const char *key, const char *text);
@@ -895,6 +900,31 @@ export_strings(sf_t       *sf,		// I - Strings
 
 
 //
+// 'get_term_width()' - Get the width of the current terminal.
+//
+
+static int				// O - 0 if not a terminal, otherwise the number of columns
+get_term_width(void)
+{
+#ifdef _WIN32
+  return (0);
+
+#else
+  struct winsize	ws;		// Terminal window size
+
+
+  if (!isatty(1))
+    return (0);
+
+  if (ioctl(1, TIOCGWINSZ, &ws))
+    return (80);
+  else
+    return ((int)ws.ws_col);
+#endif // _WIN32
+}
+
+
+//
 // 'import_string()' - Import a single string.
 //
 
@@ -1622,6 +1652,8 @@ translate_strings(sf_t       *sf,	// I - Strings
   const char	*formats[100];		// Format specifiers
   char		text[2048],		// Current text string
 		*textptr;		// Pointer into text string
+  int		term_width = get_term_width();
+					// Width of terminal or 0 if not
 
 
   // Validate the translation URL...
@@ -1675,11 +1707,17 @@ translate_strings(sf_t       *sf,	// I - Strings
   }
 
   // Loop through the strings...
+  if (term_width)
+    sfPrintf(stdout, SFSTR("stringsutil: Translating %lu strings to '%s'..."), (unsigned long)sf->num_pairs, language);
+
   for (count = sf->num_pairs, pair = sf->pairs; count > 0; count --, pair ++)
   {
     // See if this string needs to be localized...
     if ((base_text = sfGetString(base_sf, pair->key)) == NULL)
     {
+      if (term_width)
+        putchar('\n');
+
       sfPrintf(stderr, SFSTR("stringsutil: Ignoring old string '%s'..."), pair->key);
       continue;
     }
@@ -1688,7 +1726,25 @@ translate_strings(sf_t       *sf,	// I - Strings
       continue;
 
     // Try translating it...
-    sfPrintf(stdout, SFSTR("stringsutil: Translating '%s'..."), pair->key);
+    if (term_width)
+    {
+      int	pips;		// Progress meter pips
+      char	progress[11];	// Progress meter
+
+      pips = 10 - 10 * count / sf->num_pairs;
+      if (pips > 0)
+        memset(progress, '=', pips);
+      if (pips < 10)
+        memset(progress + pips, ' ', 10 - pips);
+      progress[10] = '\0';
+
+      printf("\r[%s] %*s", progress, 14 - term_width, pair->text);
+      fflush(stdout);
+    }
+    else
+    {
+      sfPrintf(stdout, SFSTR("stringsutil: Translating '%s'..."), pair->key);
+    }
 
     num_formats = 0;
 
@@ -1749,6 +1805,9 @@ translate_strings(sf_t       *sf,	// I - Strings
     {
       if (httpReconnect(http, 30000, NULL))
       {
+	if (term_width)
+	  putchar('\n');
+
 	sfPrintf(stderr, SFSTR("stringutil: Lost connection to translation server: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
@@ -1759,6 +1818,9 @@ translate_strings(sf_t       *sf,	// I - Strings
       else if (httpPost(http, "/translate"))
 #endif // CUPS_VERSION_MAJOR > 2
       {
+	if (term_width)
+	  putchar('\n');
+
 	sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
 	free(request_json);
 	break;
@@ -1767,6 +1829,9 @@ translate_strings(sf_t       *sf,	// I - Strings
 
     if (httpWrite(http, request_json, request_len) < (ssize_t)request_len)
     {
+      if (term_width)
+        putchar('\n');
+
       sfPrintf(stderr, SFSTR("stringutil: Unable to send translation request: %s"), cupsGetErrorString());
       free(request_json);
       break;
@@ -1830,7 +1895,9 @@ translate_strings(sf_t       *sf,	// I - Strings
         value    = text;
       }
 
-      sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
+      if (term_width == 0)
+        sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
+
       free(pair->text);
       pair->text = strdup(value);
       changes ++;
@@ -1838,6 +1905,9 @@ translate_strings(sf_t       *sf,	// I - Strings
     else
     {
       // Not translated, show error...
+      if (term_width)
+        putchar('\n');
+
       value = cupsGetOption("error", num_response, response);
       sfPrintf(stderr, SFSTR("stringsutil: Unable to translate: %s"), value ? value : "???");
     }
@@ -1846,6 +1916,9 @@ translate_strings(sf_t       *sf,	// I - Strings
   }
 
   // Cleanup...
+  if (term_width)
+    putchar('\n');
+
   sfPrintf(stdout, SFSTR("stringsutil: Translated %d string(s)."), changes);
 
   if (changes > 0)
