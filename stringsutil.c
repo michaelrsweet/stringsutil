@@ -1895,12 +1895,15 @@ translate_strings(sf_t       *sf,	// I - Strings
         value    = text;
       }
 
-      if (term_width == 0)
-        sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
+      if (strcmp(pair->text, value))
+      {
+	if (term_width == 0)
+	  sfPrintf(stdout, SFSTR("stringsutil: Localized as '%s'."), value);
 
-      free(pair->text);
-      pair->text = strdup(value);
-      changes ++;
+	free(pair->text);
+	pair->text = strdup(value);
+	changes ++;
+      }
     }
     else
     {
@@ -1909,7 +1912,7 @@ translate_strings(sf_t       *sf,	// I - Strings
         putchar('\n');
 
       value = cupsGetOption("error", num_response, response);
-      sfPrintf(stderr, SFSTR("stringsutil: Unable to translate: %s"), value ? value : "???");
+      sfPrintf(stderr, SFSTR("stringsutil: Unable to translate '%s': %s"), pair->text, value ? value : "???");
     }
 
     cupsFreeOptions(num_response, response);
