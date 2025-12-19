@@ -42,8 +42,6 @@ if test $status = 1; then
     exit 1
 fi
 
-exit 0
-
 # Tag, archive, and sign the release...
 echo Creating tag for release...
 git tag -m "Tag $version" v$version
