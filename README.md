@@ -98,7 +98,7 @@ strings file that can be embedded in a program:
 Legal Stuff
 -----------
 
-Copyright © 2022-2024 by Michael R Sweet.
+Copyright © 2022-2025 by Michael R Sweet.
 
 StringsUtil is licensed under the Apache License Version 2.0 with an (optional)
 exception to allow linking against GPL2/LGPL2-only software.  See the files

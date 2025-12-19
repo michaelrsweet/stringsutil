@@ -2,14 +2,16 @@ Changes in StringsUtil
 ======================
 
 
-Changes in v1.2
----------------
+v1.2 (YYYY-MM-DD)
+-----------------
 
 - Updated the output from `stringsutil translate` to better show progress.
+- Updated code to work with latest CUPS 2.5/3.0.
+- Fixed a crash bug in `stringsutil report` when checking format strings.
 
 
-Changes in v1.1
----------------
+v1.1 (2024-03-23)
+-----------------
 
 - Now support building against CUPS 2.x or libcups 3.x.
 - When exporting a C header/source file, the variable name no longer includes

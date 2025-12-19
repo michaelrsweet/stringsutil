@@ -40,7 +40,6 @@
 #  define httpConnect httpConnect2
 #  define httpGetDateString httpGetDateString2
 #  define httpRead httpRead2
-#  define httpReconnect httpReconnect2
 #  define httpSetEncryption(http,e) (httpEncryption(http,e)>=0)
 #  define httpWrite httpWrite2
 #  define httpWriteResponse(http,code) (httpWriteResponse(http,code) == 0)
@@ -64,6 +63,7 @@
 #    define httpAddrGetLength httpAddrLength
 #    define httpAddrGetString httpAddrString
 #    define httpAddrIsLocalhost httpAddrLocalhost
+#    define httpConnectAgain(http,msec,cancel) !httpReconnect2(http,msec,cancel)
 #    define httpDecode64(out,outlen,in,end) httpDecode64_2(out,outlen,in)
 #    define httpEncode64(out,outlen,in,inlen,url) httpEncode64_2(out,outlen,in,inlen)
 #    define httpGetError httpError
@@ -1296,7 +1296,7 @@ matching_formats(const char *key,	// I - Key string
   // Then compare them all...
   for (i = 0; i < num_fmts; i ++)
   {
-    if (!keyfmts[i] || !textfmts[0] || !compare_formats(keyfmts[i], textfmts[i]))
+    if (!keyfmts[i] || !textfmts[i] || !compare_formats(keyfmts[i], textfmts[i]))
       return (false);
   }
 
@@ -1807,7 +1807,7 @@ translate_strings(sf_t       *sf,	// I - Strings
     if (httpPost(http, "/translate"))
 #endif // CUPS_VERSION_MAJOR > 2
     {
-      if (httpReconnect(http, 30000, NULL))
+      if (!httpConnectAgain(http, /*msec*/30000, /*cancel*/NULL))
       {
 	if (term_width)
 	  putchar('\n');
