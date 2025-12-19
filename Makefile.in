@@ -335,7 +335,8 @@ update:		stringsutil
 
 update2:	stringsutil
 	for lang in $(LANGUAGES); do \
-		./stringsutil -f $$lang.strings export $$lang_strings.h; \
+		echo Updating $${lang}_strings.h...; \
+		./stringsutil -f $$lang.strings export $${lang}_strings.h; \
 	done
 
 
