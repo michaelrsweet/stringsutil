@@ -2,7 +2,7 @@ Changes in StringsUtil
 ======================
 
 
-v1.2 (YYYY-MM-DD)
+v1.2 - 2025-12-19
 -----------------
 
 - Added `-v` option to `stringsutil report` sub-command to show unlocalized
@@ -13,7 +13,7 @@ v1.2 (YYYY-MM-DD)
 - Fixed a crash bug in `stringsutil report` when checking format strings.
 
 
-v1.1 (2024-03-23)
+v1.1 - 2024-03-23
 -----------------
 
 - Now support building against CUPS 2.x or libcups 3.x.

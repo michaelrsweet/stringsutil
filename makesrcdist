@@ -10,6 +10,41 @@ fi
 
 version=$1
 
+# Check that version number has been updated everywhere...
+status=0
+
+if test $(grep AC_INIT configure.ac | awk '{print $2}') != "[$version],"; then
+    echo "Still need to update AC_INIT version in 'configure.ac'."
+    status=1
+fi
+
+if test $(grep -e '^VERSION=' configure | awk -F \" '{print $2}') != "$version"; then
+    echo "Still need to run 'autoconf -f'."
+    status=1
+fi
+
+temp="$(grep '^version:' snap/snapcraft.yaml | awk -F\" '{print $2}')"
+if test "$temp" != "$version"; then
+    echo "Still need to update version to $version in snap/snapcraft.yaml (saw $temp)"
+    status=1
+fi
+
+if test $(head -5 CHANGES.md | tail -1 | awk '{print $1}') != "v$version"; then
+    echo "Still need to update CHANGES.md version number."
+    status=1
+fi
+if test $(head -5 CHANGES.md | tail -1 | awk '{print $3}') = "YYYY-MM-DD"; then
+    echo "Still need to update CHANGES.md release date."
+    status=1
+fi
+
+if test $status = 1; then
+    exit 1
+fi
+
+exit 0
+
+# Tag, archive, and sign the release...
 echo Creating tag for release...
 git tag -m "Tag $version" v$version
 git push origin v$version
