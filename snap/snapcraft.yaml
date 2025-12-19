@@ -1,5 +1,5 @@
 name: stringsutil
-base: core
+base: core22
 version: "1.2"
 summary: Apple ".strings" file localization utility.
 description: |
