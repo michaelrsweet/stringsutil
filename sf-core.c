@@ -134,6 +134,7 @@ _sfFindPair(sf_t       *sf,		// I - Strings
   _sf_pair_t	pair;			// Search key
 
 
+  memset(&pair, 0, sizeof(pair));
   pair.key = (char *)key;
 
   return ((_sf_pair_t *)bsearch(&pair, sf->pairs, sf->num_pairs, sizeof(_sf_pair_t), (int (*)(const void *, const void *))sf_compare_pairs));
