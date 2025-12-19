@@ -1,7 +1,7 @@
 //
 // Simple localization functions for StringsUtil.
 //
-// Copyright © 2022 by Michael R Sweet.
+// Copyright © 2022-2025 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -10,6 +10,10 @@
 #include "sf-private.h"
 #include <stdarg.h>
 #include <locale.h>
+#ifdef _WIN32
+#  pragma comment(lib, "kernel32.lib")
+#  include <winnls.h>
+#endif // _WIN32
 
 
 //
@@ -129,8 +133,6 @@ sfRegisterString(const char *locale,	// I - Locale
 void
 sfSetLocale(void)
 {
-  const char	*locale,		// Current locale
-		*charset;		// Character set in sf_locale
   char		*ptr;			// Pointer into locale name
 
 
@@ -141,6 +143,32 @@ sfSetLocale(void)
   // Create an empty strings file object...
   sf_default = sfNew();
 
+#ifdef _WIN32 // Windows
+  char		locale[64];		// Locale ID as a regular string
+  WCHAR		wlocale[64];		// Locale ID as a wide character string
+
+  // Get the current user's language settings...
+  if (GetUserDefaultLocaleName(wlocale, sizeof(wlocale)) > 0)
+  {
+    // Convert the locale name to a C string...
+    unsigned	i;			// Looping var
+
+    for (i = 0; i < (sizeof(locale) / sizeof(locale[0]) - 1); i ++)
+      locale[i] = (char)wlocale[i];
+
+    locale[i] = '\0';
+  }
+  else
+  {
+    // No locale so just use English...
+    strncpy(locale, "en", sizeof(locale) - 1);
+    locale[sizeof(locale) - 1] = '\0';
+  }
+
+#else // All others
+  const char	*locale,		// Current locale
+		*charset;		// Character set in sf_locale
+
   // Set the current locale...
   if ((locale = setlocale(LC_ALL, "")) == NULL || !strcmp(locale, "C") || !strncmp(locale, "C/", 2))
     locale = "en";
@@ -149,6 +177,7 @@ sfSetLocale(void)
   // just output plain English...
   if ((charset = strchr(locale, '.')) != NULL && strcmp(charset, ".UTF-8"))
     locale = "en";
+#endif // _WIN32
 
   // Save the locale name minus the character set...
   strncpy(sf_locale, locale, sizeof(sf_locale) - 1);
