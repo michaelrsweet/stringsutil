@@ -3,7 +3,7 @@
 #
 #     https://github.com/michaelrsweet/stringsutil
 #
-# Copyright © 2022-2024 by Michael R Sweet.
+# Copyright © 2022-2025 by Michael R Sweet.
 #
 # Licensed under Apache License v2.0.  See the file "LICENSE" for more
 # information.
@@ -63,7 +63,7 @@ CSFLAGS		=	-s "$(CODESIGN_IDENTITY)" @CSFLAGS@ --timestamp
 #
 
 DOCFLAGS =	--author "Michael R Sweet" \
-		--copyright "Copyright (c) 2022-2024 by Michael R Sweet" \
+		--copyright "Copyright (c) 2022-2025 by Michael R Sweet" \
 		--docversion $(VERSION)
 
 
