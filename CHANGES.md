@@ -5,6 +5,8 @@ Changes in StringsUtil
 v1.2 (YYYY-MM-DD)
 -----------------
 
+- Added `-v` option to `stringsutil report` sub-command to show unlocalized
+  strings.
 - Updated the output from `stringsutil translate` to better show progress.
 - Updated code to work with latest CUPS 2.5/3.0.
 - Fixed a crash bug in `stringsutil report` when checking format strings.

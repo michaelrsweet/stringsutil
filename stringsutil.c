@@ -1,7 +1,7 @@
 //
 // Strings file utility for StringsUtil.
 //
-// Copyright © 2022-2024 by Michael R Sweet.
+// Copyright © 2022-2025 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -12,7 +12,7 @@
 //   stringsutil merge [-c] -f FILENAME-LL.strings FILENAME.strings
 //   stringsutil export -f FILENAME.strings FILENAME.{c,cc,cpp,cxx,h,po}
 //   stringsutil import [-a] -f FILENAME.strings FILENAME.{po,strings}
-//   stringsutil report -f FILENAME.strings FILENAME-LL.strings
+//   stringsutil report -f FILENAME.strings [-v] FILENAME-LL.strings
 //   stringsutil translate -f FILENAME.strings -l LOCALE [-A API-KEY] [-T URL]
 //
 
@@ -101,7 +101,7 @@ static void	import_string(sf_t *sf, char *msgid, char *msgstr, char *comment, bo
 static int	import_strings(sf_t *sf, const char *sfname, const char *filename, bool addnew);
 static bool	matching_formats(const char *key, const char *text);
 static int	merge_strings(sf_t *sf, const char *sfname, const char *filename, bool clean);
-static int	report_strings(sf_t *sf, const char *filename);
+static int	report_strings(sf_t *sf, const char *filename, bool verbose);
 static int	scan_files(sf_t *sf, const char *sfname, const char *funcname, int num_files, const char *files[]);
 static int	translate_strings(sf_t *sf, const char *sfname, const char *url, const char *apikey, const char *language, const char *filename);
 static int	usage(FILE *fp, int status);
@@ -129,7 +129,8 @@ main(int  argc,				// I - Number of command-line arguments
 					// URL to LibreTranslate server
 		*opt;			// Pointer to option
   bool		addnew = false,		// Add new strings on import?
-		clean = false;		// Clean old strings?
+		clean = false,		// Clean old strings?
+		verbose = false;	// Be verbose?
   const char	*sfname = NULL;		// Strings filename
   sf_t		*sf = NULL;		// Strings file
   struct stat	sfinfo;			// Strings file info
@@ -232,6 +233,10 @@ main(int  argc,				// I - Number of command-line arguments
               funcname = argv[i];
               break;
 
+	  case 'v' : // -v
+	      verbose = true;
+	      break;
+
 	  default :
 	      sfPrintf(stderr, SFSTR("stringsutil: Unknown option '-%c'."), *opt);
 	      return (usage(stderr, 1));
@@ -306,7 +311,7 @@ main(int  argc,				// I - Number of command-line arguments
   }
   else if (!strcmp(command, "report"))
   {
-    return (report_strings(sf, files[0]));
+    return (report_strings(sf, files[0], verbose));
   }
   else if (!strcmp(command, "translate"))
   {
@@ -1379,7 +1384,8 @@ merge_strings(sf_t       *sf,		// I - Strings
 
 static int				// O - Exit status
 report_strings(sf_t       *sf,		// I - Strings
-               const char *filename)	// I - Comparison filename
+               const char *filename,	// I - Comparison filename
+               bool       verbose)	// I - Be verbose?
 {
   sf_t		*rsf;			// Strings file to report
   _sf_pair_t	*pair,			// Current pair
@@ -1413,14 +1419,21 @@ report_strings(sf_t       *sf,		// I - Strings
 
     if (!matching_formats(rpair->key, rpair->text))
     {
-      sfPrintf(stderr, SFSTR("stringsutil: Translated format string does not match '%s'."), rpair->key);
+      sfPrintf(stderr, SFSTR("stringsutil: Translated format string does not match '%s' in '%s'."), rpair->key, filename);
       errors ++;
     }
 
     if (strcmp(rpair->text, pair->text))
+    {
       translated ++;
+    }
     else
+    {
+      if (verbose)
+        sfPrintf(stderr, SFSTR("stringsutil: '%s' is not translated in '%s'."), pair->text, filename);
+
       untranslated ++;
+    }
   }
 
   // Then look for new messages that haven't been merged...
@@ -1437,12 +1450,12 @@ report_strings(sf_t       *sf,		// I - Strings
   total = translated + missing + untranslated;
 
   if (missing || old)
-    sfPrintf(stdout, SFSTR("stringsutil: File needs to be merged, %d missing and %d old string(s)."), missing, old);
+    sfPrintf(stdout, SFSTR("stringsutil: '%s' needs to be merged, %d missing and %d old string(s)."), filename, missing, old);
 
   if (total == 0)
-    sfPuts(stdout, SFSTR("stringsutil: No strings."));
+    sfPrintf(stdout, SFSTR("stringsutil: No strings in '%s'."), filename);
   else
-    sfPrintf(stdout, SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total);
+    sfPrintf(stdout, SFSTR("stringsutil: %d string(s), %d (%d%%) translated, %d (%d%%) untranslated in '%s'."), total, translated, 100 * translated / total, untranslated + missing, 100 * (untranslated + missing) / total, filename);
 
   return (untranslated > (total / 2) || errors > 0 ? 1 : 0);
 }

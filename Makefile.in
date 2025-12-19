@@ -320,16 +320,23 @@ test:		all
 
 
 # Update localizations
+LANGUAGES	=	\
+			es \
+			fr
+
 update:		stringsutil
 	echo Updating strings files...
 	rm -f base.strings
 	./stringsutil -f base.strings -n SFSTR scan stringsutil.c
-	./stringsutil -f es.strings merge base.strings
-	./stringsutil -f fr.strings merge base.strings
+	for lang in $(LANGUAGES); do \
+		./stringsutil -c -f $$lang.strings merge base.strings; \
+		./stringsutil -f base.strings -v report $$lang.strings; \
+	done
 
 update2:	stringsutil
-	./stringsutil -f es.strings export es_strings.h
-	./stringsutil -f fr.strings export fr_strings.h
+	for lang in $(LANGUAGES); do \
+		./stringsutil -f $$lang.strings export $$lang_strings.h; \
+	done
 
 
 #

@@ -3,12 +3,12 @@
 .\"
 .\"     https://github.com/michaelrsweet/stringsutil
 .\"
-.\" Copyright © 2022 by Michael R Sweet.
+.\" Copyright © 2022-2025 by Michael R Sweet.
 .\"
 .\" Licensed under Apache License v2.0.  See the file "LICENSE" for more
 .\" information.
 .\"
-.TH stringsutil 1 "StringsUtil 1.1" "2024-03-23" "Michael R Sweet"
+.TH stringsutil 1 "StringsUtil 1.1" "2025-12-19" "Michael R Sweet"
 .SH NAME
 stringsutil \- manipulate .strings files for localization
 .SH SYNOPSIS
@@ -50,6 +50,9 @@ stringsutil \- manipulate .strings files for localization
 .B stringsutil
 .B \-f
 .I BASE.strings
+[
+.B \-v
+]
 .B report
 .I LOCALIZED.strings
 .br
@@ -132,6 +135,9 @@ sub-command.
 When scanning source files, specifies the function or macro name that is used to identify localizable strings.
 The first argument must be a C string, optionally prefixed by a comment.
 The default function name is "SFSTR" which is defined in the <sf.h> header file.
+.TP 5
+.B \-v
+When displaying a report, show unlocalized messages.
 
 .SH EXAMPLES
 Create a ".strings" file by scanning source files in the current directory:
@@ -185,4 +191,4 @@ LibreTranslate (https://libretranslate.com)
 StringsUtil (https://www.msweet.org/stringsutil)
 
 .SH COPYRIGHT
-Copyright \[co] 2022-2024 by Michael R Sweet
+Copyright \[co] 2022-2025 by Michael R Sweet
